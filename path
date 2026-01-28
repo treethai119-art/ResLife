@@ -1122,12 +1122,14 @@ PHASE 1: Foundation (MUST HAVE for any demo)
 □ name_parser.ts - Unicode-safe name parsing
 □ phone_parser.ts - Phone normalization
 □ csv_import.ts - CSV fallback
+□ csv_column_detector.ts - Enhanced column detection (Module 11)
 
 PHASE 2: Core Parsing
 ─────────────────────────────────────────────
 □ ocr_service.ts - Tesseract wrapper with timeout/retry
 □ availability_parser.ts - Chrono.js + negation detection
 □ roster_upload.tsx - UI with fallback options
+□ confidence_display.tsx - Explicit confidence UI (Module 9)
 
 PHASE 3: Analysis
 ─────────────────────────────────────────────
@@ -1141,11 +1143,22 @@ PHASE 4: Scheduling
 □ reminder_service.ts - Day-of notifications
 □ calendar_view.tsx - Visual schedule
 
-PHASE 5: Polish
+PHASE 5: Polish & Validation
 ─────────────────────────────────────────────
 □ health_dashboard.tsx - Community metrics display
 □ explanation_panel.tsx - What the numbers mean
 □ manual_override.tsx - Human in the loop
+□ calibration.ts - OCR threshold calibration (Module 8)
+
+PHASE 6: Testing (NEW - Required before production)
+─────────────────────────────────────────────
+□ tests/name_parser.test.ts - Unit tests for name parsing
+□ tests/phone_parser.test.ts - Unit tests for phone parsing
+□ tests/availability_parser.test.ts - Unit tests with negation handling
+□ tests/scheduler.test.ts - Scheduling logic tests
+□ tests/community_analysis.test.ts - Homology calculation tests
+□ tests/csv_import.test.ts - Integration tests for CSV import
+□ tests/test_utils.ts - Mock data generators
 ```
 
 ---
@@ -1176,6 +1189,1481 @@ PHASE 5: Polish
 | Multi-pass scheduling | Catches cases greedy misses |
 | Unscheduled reasons | User knows WHY someone wasn't scheduled |
 
+# NEW ADDITIONS (Addressing Weaknesses)
+
+| Addition | Module | Why It Matters |
+|----------|--------|----------------|
+| OCR Calibration Utility | Module 8 | Validates 0.7 threshold with real data |
+| Confidence Score UI | Module 9 | Shows scores explicitly in review screens |
+| Testing Roadmap | Module 10 | Explicit test coverage requirements |
+| CSV Column Mismatch Handling | Module 11 | Graceful fallback when headers don't match |
+| Known Format Detection | Module 11 | Auto-detects Banner, StarRez, RMS, Symplicity |
+| Manual Mapping UI | Module 11 | User can map columns when auto-detect fails |
+
 ---
 
 **This is a tool that works, not a research prototype that impresses.**
+
+---
+
+# MODULE 8: OCR THRESHOLD CALIBRATION
+
+**Problem:** 0.7 threshold is arbitrary, no validation dataset
+**Solution:** Calibration utility with labeled test samples
+
+```typescript
+// calibration.ts - Threshold Calibration Utility
+
+interface CalibrationSample {
+  imageFile: string;
+  expectedResidents: Resident[];  // Ground truth
+  ocrResult?: ParsedRoster;       // Actual output
+  ocrConfidence?: number;         // Tesseract confidence
+}
+
+interface CalibrationResult {
+  samples: CalibrationSample[];
+  metrics: CalibrationMetrics;
+  recommendedThreshold: number;
+  thresholdAnalysis: ThresholdAnalysis[];
+}
+
+interface CalibrationMetrics {
+  totalSamples: number;
+  correctlyParsed: number;
+  falsePositives: number;    // Low confidence but parsed correctly
+  falseNegatives: number;    // High confidence but parsed incorrectly
+  precision: number;         // TP / (TP + FP)
+  recall: number;            // TP / (TP + FN)
+  f1Score: number;           // 2 * (P * R) / (P + R)
+}
+
+interface ThresholdAnalysis {
+  threshold: number;         // 0.5, 0.6, 0.7, 0.8, 0.9
+  accepted: number;          // Samples above threshold
+  rejected: number;          // Samples below threshold
+  acceptedCorrect: number;   // Above threshold AND correct
+  rejectedCorrect: number;   // Below threshold BUT correct (false rejects)
+  precision: number;
+  recall: number;
+  f1Score: number;
+}
+
+// ============================================================================
+// CALIBRATION RUNNER
+// ============================================================================
+
+async function runCalibration(
+  samples: CalibrationSample[]
+): Promise<CalibrationResult> {
+
+  // Step 1: Run OCR on all samples
+  for (const sample of samples) {
+    const result = await processRosterImage(sample.imageFile);
+    if (result.ok) {
+      sample.ocrResult = result.value;
+      sample.ocrConfidence = result.value.confidence;
+    } else {
+      sample.ocrConfidence = 0;
+    }
+  }
+
+  // Step 2: Evaluate at multiple thresholds
+  const thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
+  const analyses: ThresholdAnalysis[] = [];
+
+  for (const threshold of thresholds) {
+    const analysis = analyzeAtThreshold(samples, threshold);
+    analyses.push(analysis);
+  }
+
+  // Step 3: Find optimal threshold (maximize F1)
+  const optimal = analyses.reduce((best, curr) =>
+    curr.f1Score > best.f1Score ? curr : best
+  );
+
+  // Step 4: Compute overall metrics at current threshold
+  const currentMetrics = computeMetrics(samples, CONFIG.parsing.ocr_confidence_threshold);
+
+  return {
+    samples,
+    metrics: currentMetrics,
+    recommendedThreshold: optimal.threshold,
+    thresholdAnalysis: analyses
+  };
+}
+
+function analyzeAtThreshold(
+  samples: CalibrationSample[],
+  threshold: number
+): ThresholdAnalysis {
+  let accepted = 0, rejected = 0;
+  let acceptedCorrect = 0, rejectedCorrect = 0;
+
+  for (const sample of samples) {
+    const conf = sample.ocrConfidence || 0;
+    const isCorrect = verifyParsedResult(sample.ocrResult, sample.expectedResidents);
+
+    if (conf >= threshold) {
+      accepted++;
+      if (isCorrect) acceptedCorrect++;
+    } else {
+      rejected++;
+      if (isCorrect) rejectedCorrect++;  // False reject
+    }
+  }
+
+  const truePositives = acceptedCorrect;
+  const falsePositives = accepted - acceptedCorrect;
+  const falseNegatives = rejectedCorrect;  // Correct but rejected
+
+  const precision = accepted > 0 ? truePositives / accepted : 0;
+  const recall = (truePositives + falseNegatives) > 0
+    ? truePositives / (truePositives + falseNegatives) : 0;
+  const f1Score = (precision + recall) > 0
+    ? 2 * precision * recall / (precision + recall) : 0;
+
+  return {
+    threshold,
+    accepted,
+    rejected,
+    acceptedCorrect,
+    rejectedCorrect,
+    precision,
+    recall,
+    f1Score
+  };
+}
+
+function verifyParsedResult(
+  parsed: ParsedRoster | undefined,
+  expected: Resident[]
+): boolean {
+  if (!parsed) return false;
+
+  // Check name match rate
+  const expectedNames = new Set(expected.map(r =>
+    `${r.firstName.toLowerCase()} ${r.lastName.toLowerCase()}`
+  ));
+
+  let matches = 0;
+  for (const resident of parsed.residents) {
+    const name = `${resident.firstName.toLowerCase()} ${resident.lastName.toLowerCase()}`;
+    if (expectedNames.has(name)) matches++;
+  }
+
+  // Consider correct if 90%+ names match
+  const matchRate = expected.length > 0 ? matches / expected.length : 0;
+  return matchRate >= 0.9;
+}
+
+// ============================================================================
+// CALIBRATION UI COMPONENT
+// ============================================================================
+
+function CalibrationDashboard() {
+  const [result, setResult] = useState<CalibrationResult | null>(null);
+  const [samples, setSamples] = useState<CalibrationSample[]>([]);
+
+  return (
+    <div className="calibration-dashboard">
+      <h2>OCR Threshold Calibration</h2>
+
+      {/* Sample upload */}
+      <section className="sample-upload">
+        <h3>1. Upload Validation Dataset</h3>
+        <p className="help-text">
+          Upload roster images with known correct data to calibrate OCR threshold.
+        </p>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={(e) => handleSampleUpload(e.target.files)}
+        />
+        <p className="sample-count">{samples.length} samples loaded</p>
+      </section>
+
+      {/* Run calibration */}
+      <section className="run-calibration">
+        <h3>2. Run Calibration</h3>
+        <button
+          onClick={() => runCalibration(samples).then(setResult)}
+          disabled={samples.length < 5}
+        >
+          Run Calibration ({samples.length} samples)
+        </button>
+        {samples.length < 5 && (
+          <p className="warning">Minimum 5 samples required for meaningful calibration</p>
+        )}
+      </section>
+
+      {/* Results */}
+      {result && (
+        <section className="calibration-results">
+          <h3>3. Results</h3>
+
+          {/* Current vs Recommended */}
+          <div className="threshold-comparison">
+            <div className="current">
+              <h4>Current Threshold</h4>
+              <span className="value">{CONFIG.parsing.ocr_confidence_threshold}</span>
+              <span className="metrics">
+                F1: {(result.metrics.f1Score * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="recommended">
+              <h4>Recommended Threshold</h4>
+              <span className="value">{result.recommendedThreshold}</span>
+              <span className="metrics">
+                F1: {(result.thresholdAnalysis.find(
+                  a => a.threshold === result.recommendedThreshold
+                )?.f1Score || 0 * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Threshold curve */}
+          <div className="threshold-curve">
+            <h4>Threshold Analysis</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>Threshold</th>
+                  <th>Accepted</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1 Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.thresholdAnalysis.map(a => (
+                  <tr key={a.threshold} className={
+                    a.threshold === result.recommendedThreshold ? 'recommended' : ''
+                  }>
+                    <td>{a.threshold}</td>
+                    <td>{a.accepted}/{result.samples.length}</td>
+                    <td>{(a.precision * 100).toFixed(1)}%</td>
+                    <td>{(a.recall * 100).toFixed(1)}%</td>
+                    <td>{(a.f1Score * 100).toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Apply button */}
+          <button
+            className="apply-threshold"
+            onClick={() => applyThreshold(result.recommendedThreshold)}
+          >
+            Apply Recommended Threshold ({result.recommendedThreshold})
+          </button>
+        </section>
+      )}
+    </div>
+  );
+}
+
+// CALIBRATE comment for default value
+// Current: 0.7 - industry standard starting point
+// After calibration with your institution's data:
+// - Higher (0.8+): More accurate but more manual review
+// - Lower (0.6-): Faster processing but more errors slip through
+// Recommendation: Start at 0.7, run calibration with 20+ samples
+```
+
+---
+
+# MODULE 9: CONFIDENCE SCORE UI DISPLAY
+
+**Problem:** Confidence scores computed but not clearly shown to users
+**Solution:** Explicit confidence indicators throughout the review UI
+
+```typescript
+// confidence_display.tsx - Explicit Confidence Score Components
+
+// ============================================================================
+// CONFIDENCE BADGE COMPONENT
+// ============================================================================
+
+interface ConfidenceBadgeProps {
+  confidence: number;  // 0-1
+  showLabel?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+function ConfidenceBadge({ confidence, showLabel = true, size = 'md' }: ConfidenceBadgeProps) {
+  const level = getConfidenceLevel(confidence);
+  const percentage = Math.round(confidence * 100);
+
+  return (
+    <div className={`confidence-badge confidence-${level} size-${size}`}>
+      <div
+        className="confidence-bar"
+        style={{ width: `${percentage}%` }}
+        aria-valuenow={percentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      />
+      <span className="confidence-value">{percentage}%</span>
+      {showLabel && (
+        <span className="confidence-label">{level}</span>
+      )}
+    </div>
+  );
+}
+
+function getConfidenceLevel(confidence: number): 'high' | 'medium' | 'low' | 'critical' {
+  if (confidence >= 0.9) return 'high';
+  if (confidence >= 0.7) return 'medium';
+  if (confidence >= 0.5) return 'low';
+  return 'critical';
+}
+
+// CSS for confidence badges
+const confidenceStyles = `
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.confidence-badge.confidence-high {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.confidence-badge.confidence-medium {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+.confidence-badge.confidence-low {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.confidence-badge.confidence-critical {
+  background: #721c24;
+  color: white;
+  border: 1px solid #721c24;
+}
+
+.confidence-bar {
+  height: 4px;
+  background: currentColor;
+  border-radius: 2px;
+  min-width: 40px;
+}
+`;
+
+// ============================================================================
+// RESIDENT CARD WITH CONFIDENCE
+// ============================================================================
+
+interface ResidentCardProps {
+  resident: Resident;
+  nameConfidence: number;
+  phoneConfidence?: number;
+  overallConfidence: number;
+  needsReview: boolean;
+  onEdit: (field: string) => void;
+}
+
+function ResidentCard({
+  resident,
+  nameConfidence,
+  phoneConfidence,
+  overallConfidence,
+  needsReview,
+  onEdit
+}: ResidentCardProps) {
+  return (
+    <div className={`resident-card ${needsReview ? 'needs-review' : ''}`}>
+      {/* Overall confidence header */}
+      <div className="card-header">
+        <ConfidenceBadge confidence={overallConfidence} />
+        {needsReview && (
+          <span className="review-badge">⚠️ Needs Review</span>
+        )}
+      </div>
+
+      {/* Name field with confidence */}
+      <div className="field-row">
+        <label>Name</label>
+        <div className="field-value-group">
+          <span className="field-value">
+            {resident.firstName} {resident.lastName}
+          </span>
+          <ConfidenceBadge
+            confidence={nameConfidence}
+            size="sm"
+            showLabel={false}
+          />
+          <button
+            className="edit-btn"
+            onClick={() => onEdit('name')}
+            title="Edit name"
+          >
+            ✏️
+          </button>
+        </div>
+      </div>
+
+      {/* Room field */}
+      <div className="field-row">
+        <label>Room</label>
+        <span className="field-value">{resident.room}</span>
+      </div>
+
+      {/* Phone with confidence (if parsed) */}
+      {resident.phone && (
+        <div className="field-row">
+          <label>Phone</label>
+          <div className="field-value-group">
+            <span className="field-value">{resident.phone}</span>
+            {phoneConfidence !== undefined && (
+              <ConfidenceBadge
+                confidence={phoneConfidence}
+                size="sm"
+                showLabel={false}
+              />
+            )}
+            <button
+              className="edit-btn"
+              onClick={() => onEdit('phone')}
+              title="Edit phone"
+            >
+              ✏️
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// OCR RESULTS REVIEW SCREEN
+// ============================================================================
+
+interface OCRReviewScreenProps {
+  result: ParsedRoster;
+  onConfirm: (residents: Resident[]) => void;
+  onRetry: () => void;
+}
+
+function OCRReviewScreen({ result, onConfirm, onRetry }: OCRReviewScreenProps) {
+  const [residents, setResidents] = useState(result.residents);
+
+  // Count items needing review
+  const needsReviewCount = residents.filter(r => r.needsReview).length;
+  const lowConfidenceCount = residents.filter(r => r.confidence < 0.7).length;
+
+  return (
+    <div className="ocr-review-screen">
+      {/* Header with overall confidence */}
+      <header className="review-header">
+        <h2>Review OCR Results</h2>
+
+        {/* EXPLICIT CONFIDENCE SUMMARY */}
+        <div className="confidence-summary">
+          <div className="summary-item">
+            <span className="label">OCR Confidence</span>
+            <ConfidenceBadge confidence={result.confidence} size="lg" />
+          </div>
+
+          <div className="summary-item">
+            <span className="label">Records Parsed</span>
+            <span className="value">{residents.length}</span>
+          </div>
+
+          <div className="summary-item warning">
+            <span className="label">Needs Review</span>
+            <span className="value">{needsReviewCount}</span>
+          </div>
+
+          <div className="summary-item">
+            <span className="label">Low Confidence</span>
+            <span className="value">{lowConfidenceCount}</span>
+          </div>
+        </div>
+
+        {/* Confidence explanation */}
+        <div className="confidence-explanation">
+          <h4>What do confidence scores mean?</h4>
+          <ul>
+            <li><strong>90%+:</strong> High confidence - likely correct</li>
+            <li><strong>70-89%:</strong> Medium confidence - verify if possible</li>
+            <li><strong>50-69%:</strong> Low confidence - needs human review</li>
+            <li><strong>&lt;50%:</strong> Critical - likely errors, please verify</li>
+          </ul>
+        </div>
+      </header>
+
+      {/* Filter controls */}
+      <div className="filter-controls">
+        <button className="filter-btn active">
+          All ({residents.length})
+        </button>
+        <button className="filter-btn">
+          Needs Review ({needsReviewCount})
+        </button>
+        <button className="filter-btn">
+          Low Confidence ({lowConfidenceCount})
+        </button>
+      </div>
+
+      {/* Resident cards */}
+      <div className="residents-grid">
+        {residents.map((resident, idx) => (
+          <ResidentCard
+            key={idx}
+            resident={resident}
+            nameConfidence={resident.nameConfidence || 0.9}
+            phoneConfidence={resident.phoneConfidence}
+            overallConfidence={resident.confidence || 0.9}
+            needsReview={resident.needsReview || false}
+            onEdit={(field) => handleEdit(idx, field)}
+          />
+        ))}
+      </div>
+
+      {/* Action buttons */}
+      <footer className="review-actions">
+        <button className="btn-secondary" onClick={onRetry}>
+          🔄 Re-scan Image
+        </button>
+        <button
+          className="btn-primary"
+          onClick={() => onConfirm(residents)}
+          disabled={needsReviewCount > 0}
+        >
+          ✓ Confirm {residents.length} Residents
+        </button>
+        {needsReviewCount > 0 && (
+          <p className="action-hint">
+            Review {needsReviewCount} flagged items before confirming
+          </p>
+        )}
+      </footer>
+    </div>
+  );
+}
+
+// ============================================================================
+// AVAILABILITY CONFIDENCE DISPLAY
+// ============================================================================
+
+function AvailabilityConfidenceView({ blocks }: { blocks: AvailabilityBlock[] }) {
+  return (
+    <div className="availability-confidence-view">
+      <h4>Parsed Availability</h4>
+
+      {blocks.map((block, idx) => (
+        <div key={idx} className={`availability-block ${block.isNegated ? 'negated' : ''}`}>
+          <div className="block-header">
+            <span className="days">{block.days.join(', ')}</span>
+            <span className="times">{block.startTime} - {block.endTime}</span>
+            <ConfidenceBadge confidence={block.confidence} size="sm" />
+          </div>
+
+          {block.isNegated && (
+            <span className="negation-badge">❌ NOT available</span>
+          )}
+
+          {/* Confidence explanation for this block */}
+          {block.confidence < 0.7 && (
+            <p className="low-confidence-hint">
+              ⚠️ Lower confidence - please verify this time block
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+# MODULE 10: TESTING ROADMAP
+
+**Problem:** No explicit testing mentioned
+**Solution:** Comprehensive testing strategy with example test cases
+
+```typescript
+// ============================================================================
+// TESTING STRATEGY
+// ============================================================================
+//
+// This module defines the testing approach for CheckIn v2.
+// All tests should be implemented before shipping to production.
+//
+// Test Categories:
+// 1. Unit Tests - Individual function behavior
+// 2. Integration Tests - Component interactions
+// 3. End-to-End Tests - Full workflow validation
+// 4. Validation Tests - Data quality checks
+//
+
+// ============================================================================
+// 1. UNIT TESTS: NAME PARSER
+// ============================================================================
+
+// tests/name_parser.test.ts
+describe('parseName', () => {
+  // Basic cases
+  test('parses simple first last name', () => {
+    const result = parseName('John Smith');
+    expect(result).toEqual({
+      firstName: 'John',
+      lastName: 'Smith',
+      confidence: 0.9,
+      needsReview: false
+    });
+  });
+
+  // Unicode handling
+  test('preserves apostrophes in names', () => {
+    const result = parseName("Mary O'Brien");
+    expect(result.lastName).toBe("O'Brien");
+    expect(result.confidence).toBeGreaterThanOrEqual(0.9);
+  });
+
+  test('handles Spanish names with accents', () => {
+    const result = parseName('José García');
+    expect(result.firstName).toBe('José');
+    expect(result.lastName).toBe('García');
+  });
+
+  test('handles hyphenated names', () => {
+    const result = parseName('Jean-Pierre Dupont');
+    expect(result.firstName).toBe('Jean-Pierre');
+    expect(result.lastName).toBe('Dupont');
+  });
+
+  // Edge cases
+  test('flags single name for review', () => {
+    const result = parseName('Madonna');
+    expect(result.firstName).toBe('Madonna');
+    expect(result.lastName).toBe('');
+    expect(result.needsReview).toBe(true);
+    expect(result.confidence).toBe(0.5);
+  });
+
+  test('handles suffixes correctly', () => {
+    const result = parseName('John Smith Jr');
+    expect(result.firstName).toBe('John');
+    expect(result.lastName).toBe('Smith Jr');
+  });
+
+  test('flags multi-part names for review', () => {
+    const result = parseName('María del Carmen');
+    expect(result.needsReview).toBe(true);
+    expect(result.confidence).toBe(0.7);
+  });
+
+  test('handles empty input', () => {
+    const result = parseName('');
+    expect(result.confidence).toBe(0);
+    expect(result.needsReview).toBe(true);
+  });
+});
+
+// ============================================================================
+// 2. UNIT TESTS: PHONE PARSER
+// ============================================================================
+
+// tests/phone_parser.test.ts
+describe('parsePhone', () => {
+  test('parses 10-digit US number', () => {
+    const result = parsePhone('8435551234');
+    expect(result?.normalized).toBe('8435551234');
+    expect(result?.formatted).toBe('(843) 555-1234');
+    expect(result?.confidence).toBe(0.95);
+    expect(result?.isInternational).toBe(false);
+  });
+
+  test('parses formatted US number', () => {
+    const result = parsePhone('(843) 555-1234');
+    expect(result?.normalized).toBe('8435551234');
+  });
+
+  test('parses 11-digit with leading 1', () => {
+    const result = parsePhone('18435551234');
+    expect(result?.normalized).toBe('8435551234');
+  });
+
+  test('flags international numbers', () => {
+    const result = parsePhone('+44 20 7946 0958');
+    expect(result?.isInternational).toBe(true);
+    expect(result?.confidence).toBe(0.5);
+  });
+
+  test('returns null for too few digits', () => {
+    const result = parsePhone('12345');
+    expect(result).toBeNull();
+  });
+});
+
+// ============================================================================
+// 3. UNIT TESTS: AVAILABILITY PARSER
+// ============================================================================
+
+// tests/availability_parser.test.ts
+describe('parseAvailability', () => {
+  // Positive availability
+  test('parses simple day availability', () => {
+    const result = parseAvailability('Monday and Tuesday afternoons');
+    expect(result[0].days).toContain('M');
+    expect(result[0].days).toContain('T');
+    expect(result[0].isNegated).toBe(false);
+  });
+
+  // CRITICAL: Negation handling
+  test('detects "not Monday" as negated', () => {
+    const result = parseAvailability('not Monday');
+    const mondayBlock = result.find(b => b.days.includes('M'));
+    expect(mondayBlock?.isNegated).toBe(true);
+  });
+
+  test('detects "except Tuesday" as negated', () => {
+    const result = parseAvailability('available everyday except Tuesday');
+    const tuesdayBlock = result.find(b => b.days.includes('T') && b.isNegated);
+    expect(tuesdayBlock).toBeDefined();
+  });
+
+  test('detects "busy on Wednesday" as negated', () => {
+    const result = parseAvailability("I'm busy on Wednesday");
+    const wedBlock = result.find(b => b.days.includes('W'));
+    expect(wedBlock?.isNegated).toBe(true);
+  });
+
+  // Time parsing
+  test('parses "after 3pm" correctly', () => {
+    const result = parseAvailability('available after 3pm');
+    expect(result[0].startTime).toBe('15:00');
+  });
+
+  test('parses "before noon" correctly', () => {
+    const result = parseAvailability('free before noon');
+    expect(result[0].endTime).toBe('12:00');
+  });
+
+  // Inversion logic
+  test('inverts negation-only input', () => {
+    const parsed = parseAvailability('not Monday');
+    const available = computeAvailableBlocks(parsed);
+
+    expect(available[0].days).not.toContain('M');
+    expect(available[0].days).toContain('T');
+    expect(available[0].days).toContain('W');
+  });
+});
+
+// ============================================================================
+// 4. UNIT TESTS: SCHEDULING
+// ============================================================================
+
+// tests/scheduler.test.ts
+describe('scheduleCheckIns', () => {
+  const mockResidents = [
+    { id: '1', statedAvailability: [{ days: ['M'], startTime: '09:00', endTime: '12:00' }] },
+    { id: '2', statedAvailability: [{ days: ['M'], startTime: '10:00', endTime: '14:00' }] },
+    { id: '3', statedAvailability: [] },  // No availability
+  ];
+
+  const mockRAAvailability = [
+    { day: 'M', startTime: '09:00', endTime: '17:00' }
+  ];
+
+  test('schedules residents with overlapping availability', () => {
+    const result = scheduleCheckIns(mockResidents, mockRAAvailability, {});
+    expect(result.scheduled.length).toBeGreaterThan(0);
+    expect(result.stats.scheduled).toBe(2);
+  });
+
+  test('reports unscheduled with correct reason', () => {
+    const result = scheduleCheckIns(mockResidents, mockRAAvailability, {});
+    const unscheduledRes3 = result.unscheduled.find(u => u.residentId === '3');
+    expect(unscheduledRes3?.reason).toBe('no_availability_provided');
+  });
+
+  test('provides helpful suggestions for unscheduled', () => {
+    const result = scheduleCheckIns(mockResidents, mockRAAvailability, {});
+    const unscheduled = result.unscheduled[0];
+    expect(unscheduled.suggestion).toBeDefined();
+    expect(unscheduled.suggestion.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// 5. UNIT TESTS: COMMUNITY ANALYSIS
+// ============================================================================
+
+// tests/community_analysis.test.ts
+describe('analyzeCommmunity', () => {
+  test('detects single connected component', () => {
+    const residents = [{ id: '1' }, { id: '2' }, { id: '3' }];
+    const connections = [
+      { source: '1', target: '2' },
+      { source: '2', target: '3' }
+    ];
+    const result = analyzeCommmunity(residents, connections);
+    expect(result.components).toBe(1);
+  });
+
+  test('detects multiple components', () => {
+    const residents = [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }];
+    const connections = [
+      { source: '1', target: '2' },
+      { source: '3', target: '4' }
+    ];
+    const result = analyzeCommmunity(residents, connections);
+    expect(result.components).toBe(2);
+  });
+
+  test('calculates structural holes correctly', () => {
+    // Triangle: 3 vertices, 3 edges, 1 component
+    // β₁ = E - V + β₀ = 3 - 3 + 1 = 1
+    const residents = [{ id: '1' }, { id: '2' }, { id: '3' }];
+    const connections = [
+      { source: '1', target: '2' },
+      { source: '2', target: '3' },
+      { source: '3', target: '1' }
+    ];
+    const result = analyzeCommmunity(residents, connections);
+    expect(result.structuralHoles).toBe(1);
+  });
+
+  test('identifies isolation risk residents', () => {
+    const residents = [
+      { id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }
+    ];
+    // Resident 5 has only 1 connection, others have 2
+    const connections = [
+      { source: '1', target: '2' },
+      { source: '2', target: '3' },
+      { source: '3', target: '4' },
+      { source: '4', target: '1' },
+      { source: '1', target: '5' }  // Resident 5 only connects to 1
+    ];
+    const result = analyzeCommmunity(residents, connections);
+    expect(result.isolationRisk).toContain('5');
+  });
+});
+
+// ============================================================================
+// 6. INTEGRATION TESTS: CSV IMPORT
+// ============================================================================
+
+// tests/csv_import.test.ts
+describe('CSV Import Integration', () => {
+  test('detects standard column headers', async () => {
+    const csv = `First Name,Last Name,Room Number,Email
+John,Smith,101,john@school.edu
+Jane,Doe,102,jane@school.edu`;
+
+    const file = new File([csv], 'roster.csv', { type: 'text/csv' });
+    const result = await importCSV(file);
+
+    expect(result.ok).toBe(true);
+    expect(result.value.residents.length).toBe(2);
+  });
+
+  test('handles combined name column', async () => {
+    const csv = `Full Name,Room
+John Smith,101
+Jane Doe,102`;
+
+    const file = new File([csv], 'roster.csv', { type: 'text/csv' });
+    const result = await importCSV(file);
+
+    expect(result.ok).toBe(true);
+    expect(result.value.residents[0].firstName).toBe('John');
+    expect(result.value.residents[0].lastName).toBe('Smith');
+  });
+
+  test('reports warnings for invalid rows', async () => {
+    const csv = `Name,Room
+John Smith,101
+,102`;  // Missing name
+
+    const file = new File([csv], 'roster.csv', { type: 'text/csv' });
+    const result = await importCSV(file);
+
+    expect(result.ok).toBe(true);
+    expect(result.value.warnings.length).toBe(1);
+    expect(result.value.warnings[0]).toContain('Row 3');
+  });
+});
+
+// ============================================================================
+// 7. TEST UTILITIES
+// ============================================================================
+
+// tests/test_utils.ts
+export function createMockResident(overrides: Partial<Resident> = {}): Resident {
+  return {
+    id: crypto.randomUUID(),
+    firstName: 'Test',
+    lastName: 'User',
+    room: '100',
+    email: 'test@school.edu',
+    phone: '8435551234',
+    subcommunities: new Set(),
+    statedAvailability: [],
+    ...overrides
+  };
+}
+
+export function createMockConnection(
+  source: string,
+  target: string,
+  strength: number = 1.0
+): Connection {
+  return {
+    id: crypto.randomUUID(),
+    source,
+    target,
+    type: ConnectionType.SHARED_INTEREST,
+    strength,
+    is_bridge_edge: false,
+    touches_subcommunities: new Set()
+  };
+}
+
+// ============================================================================
+// 8. TEST COVERAGE REQUIREMENTS
+// ============================================================================
+
+/*
+MINIMUM TEST COVERAGE FOR v1 RELEASE:
+
+PARSING LAYER:
+□ name_parser.ts - 95% coverage
+  - All Unicode character sets
+  - All suffix patterns
+  - Edge cases (single names, empty input)
+
+□ phone_parser.ts - 90% coverage
+  - US formats
+  - International detection
+  - Invalid input
+
+□ availability_parser.ts - 90% coverage
+  - All negation patterns
+  - Time range parsing
+  - Inversion logic
+
+ANALYSIS LAYER:
+□ community_analysis.ts - 85% coverage
+  - Component counting
+  - β₁ calculation
+  - Isolation detection
+
+SCHEDULING LAYER:
+□ scheduler.ts - 85% coverage
+  - Successful scheduling
+  - Failure reasons
+  - Suggestion generation
+
+CSV IMPORT:
+□ csv_import.ts - 90% coverage
+  - Column detection
+  - Error handling
+  - Warning generation
+
+INTEGRATION:
+□ Full workflow tests - at least 5 scenarios
+  - Happy path (OCR success)
+  - OCR fallback to CSV
+  - Scheduling with conflicts
+  - Community with isolates
+  - Multi-pass scheduling improvement
+*/
+```
+
+---
+
+# MODULE 11: ENHANCED CSV COLUMN DETECTION
+
+**Problem:** What if CSV headers don't match expected patterns?
+**Solution:** Smart fallback with user confirmation and manual mapping UI
+
+```typescript
+// csv_column_detector.ts - Enhanced column detection with mismatch handling
+
+// ============================================================================
+// COLUMN DETECTION RESULT
+// ============================================================================
+
+interface ColumnDetectionResult {
+  mapping: Record<string, string>;  // CSV header -> our field
+  confidence: 'high' | 'medium' | 'low' | 'manual_required';
+  matchedColumns: string[];         // Columns we auto-detected
+  unmatchedColumns: string[];       // Columns we couldn't identify
+  missingRequired: string[];        // Required fields not found
+  suggestions: ColumnSuggestion[];  // For UI to show user
+}
+
+interface ColumnSuggestion {
+  csvColumn: string;
+  possibleFields: {
+    field: string;
+    confidence: number;
+    reason: string;
+  }[];
+}
+
+// ============================================================================
+// ENHANCED COLUMN DETECTION
+// ============================================================================
+
+function detectColumnMappingEnhanced(headers: string[]): ColumnDetectionResult {
+  const mapping: Record<string, string> = {};
+  const matchedColumns: string[] = [];
+  const unmatchedColumns: string[] = [];
+  const suggestions: ColumnSuggestion[] = [];
+
+  // Required fields
+  const requiredFields = ['name', 'room'];  // At minimum need name and room
+
+  // Patterns for each field (ordered by specificity)
+  const patterns: Record<string, { regex: RegExp[]; priority: number }> = {
+    firstName: {
+      regex: [/^first\s*name$/i, /^fname$/i, /^given\s*name$/i, /^first$/i],
+      priority: 1
+    },
+    lastName: {
+      regex: [/^last\s*name$/i, /^lname$/i, /^surname$/i, /^family\s*name$/i, /^last$/i],
+      priority: 1
+    },
+    name: {
+      regex: [/^name$/i, /^full\s*name$/i, /^student\s*name$/i, /^resident\s*name$/i, /^resident$/i],
+      priority: 2
+    },
+    room: {
+      regex: [/^room$/i, /^room\s*#$/i, /^room\s*(num|number)$/i, /^unit$/i, /^apt$/i, /^apartment$/i],
+      priority: 1
+    },
+    email: {
+      regex: [/^e?-?mail$/i, /^email\s*address$/i],
+      priority: 3
+    },
+    phone: {
+      regex: [/^phone$/i, /^cell$/i, /^mobile$/i, /^tel$/i, /^telephone$/i, /^contact$/i],
+      priority: 3
+    },
+  };
+
+  // Phase 1: Exact pattern matching
+  for (const header of headers) {
+    const normalizedHeader = header.trim();
+    let matched = false;
+
+    for (const [field, { regex }] of Object.entries(patterns)) {
+      if (regex.some(r => r.test(normalizedHeader))) {
+        mapping[normalizedHeader] = field;
+        matchedColumns.push(normalizedHeader);
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      unmatchedColumns.push(normalizedHeader);
+    }
+  }
+
+  // Phase 2: Fuzzy matching for unmatched columns
+  for (const header of unmatchedColumns) {
+    const suggestion = generateColumnSuggestion(header, patterns, mapping);
+    if (suggestion.possibleFields.length > 0) {
+      suggestions.push(suggestion);
+    }
+  }
+
+  // Phase 3: Check for missing required fields
+  const missingRequired: string[] = [];
+
+  // Check if we have name (either combined or firstName+lastName)
+  const hasName = Object.values(mapping).includes('name');
+  const hasFirstName = Object.values(mapping).includes('firstName');
+  const hasLastName = Object.values(mapping).includes('lastName');
+
+  if (!hasName && !(hasFirstName || hasLastName)) {
+    missingRequired.push('name (or firstName/lastName)');
+  }
+
+  if (!Object.values(mapping).includes('room')) {
+    missingRequired.push('room');
+  }
+
+  // Determine overall confidence
+  let confidence: 'high' | 'medium' | 'low' | 'manual_required';
+
+  if (missingRequired.length > 0) {
+    confidence = 'manual_required';
+  } else if (unmatchedColumns.length === 0) {
+    confidence = 'high';
+  } else if (unmatchedColumns.length <= 2) {
+    confidence = 'medium';
+  } else {
+    confidence = 'low';
+  }
+
+  return {
+    mapping,
+    confidence,
+    matchedColumns,
+    unmatchedColumns,
+    missingRequired,
+    suggestions
+  };
+}
+
+function generateColumnSuggestion(
+  header: string,
+  patterns: Record<string, { regex: RegExp[]; priority: number }>,
+  existingMapping: Record<string, string>
+): ColumnSuggestion {
+  const possibleFields: ColumnSuggestion['possibleFields'] = [];
+  const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // Check for partial matches
+  const fieldKeywords: Record<string, string[]> = {
+    firstName: ['first', 'fname', 'given'],
+    lastName: ['last', 'lname', 'surname', 'family'],
+    name: ['name', 'student', 'resident', 'person'],
+    room: ['room', 'unit', 'apt', 'dorm', 'hall', 'building'],
+    email: ['email', 'mail', 'address'],
+    phone: ['phone', 'cell', 'mobile', 'tel', 'contact', 'number'],
+  };
+
+  for (const [field, keywords] of Object.entries(fieldKeywords)) {
+    // Skip if field already mapped
+    if (Object.values(existingMapping).includes(field)) continue;
+
+    for (const keyword of keywords) {
+      if (normalizedHeader.includes(keyword)) {
+        possibleFields.push({
+          field,
+          confidence: 0.6,
+          reason: `Header contains '${keyword}'`
+        });
+        break;
+      }
+    }
+  }
+
+  // Sort by confidence
+  possibleFields.sort((a, b) => b.confidence - a.confidence);
+
+  return { csvColumn: header, possibleFields };
+}
+
+// ============================================================================
+// COLUMN MAPPING UI COMPONENT
+// ============================================================================
+
+interface ColumnMappingUIProps {
+  headers: string[];
+  detectionResult: ColumnDetectionResult;
+  onConfirm: (mapping: Record<string, string>) => void;
+  onCancel: () => void;
+}
+
+function ColumnMappingUI({
+  headers,
+  detectionResult,
+  onConfirm,
+  onCancel
+}: ColumnMappingUIProps) {
+  const [mapping, setMapping] = useState(detectionResult.mapping);
+  const [hasRequiredFields, setHasRequiredFields] = useState(
+    detectionResult.missingRequired.length === 0
+  );
+
+  // Available fields to map to
+  const availableFields = [
+    { value: '', label: '-- Skip this column --' },
+    { value: 'firstName', label: 'First Name' },
+    { value: 'lastName', label: 'Last Name' },
+    { value: 'name', label: 'Full Name' },
+    { value: 'room', label: 'Room Number' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Phone' },
+  ];
+
+  const handleMappingChange = (csvColumn: string, field: string) => {
+    const newMapping = { ...mapping };
+
+    if (field === '') {
+      delete newMapping[csvColumn];
+    } else {
+      newMapping[csvColumn] = field;
+    }
+
+    setMapping(newMapping);
+
+    // Check required fields
+    const hasName = Object.values(newMapping).includes('name') ||
+      (Object.values(newMapping).includes('firstName') ||
+       Object.values(newMapping).includes('lastName'));
+    const hasRoom = Object.values(newMapping).includes('room');
+
+    setHasRequiredFields(hasName && hasRoom);
+  };
+
+  return (
+    <div className="column-mapping-ui">
+      <header>
+        <h2>Map CSV Columns</h2>
+
+        {/* Confidence indicator */}
+        <div className={`confidence-indicator ${detectionResult.confidence}`}>
+          {detectionResult.confidence === 'high' && (
+            <span>✓ All columns auto-detected</span>
+          )}
+          {detectionResult.confidence === 'medium' && (
+            <span>⚠ Some columns need verification</span>
+          )}
+          {detectionResult.confidence === 'low' && (
+            <span>⚠ Multiple columns unrecognized</span>
+          )}
+          {detectionResult.confidence === 'manual_required' && (
+            <span>❌ Required columns not found - please map manually</span>
+          )}
+        </div>
+      </header>
+
+      {/* Missing required fields warning */}
+      {detectionResult.missingRequired.length > 0 && (
+        <div className="missing-required-warning">
+          <h4>Missing Required Fields:</h4>
+          <ul>
+            {detectionResult.missingRequired.map(field => (
+              <li key={field}>{field}</li>
+            ))}
+          </ul>
+          <p>Please map these columns below to continue.</p>
+        </div>
+      )}
+
+      {/* Column mapping table */}
+      <table className="mapping-table">
+        <thead>
+          <tr>
+            <th>CSV Column</th>
+            <th>Sample Data</th>
+            <th>Maps To</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {headers.map(header => {
+            const isMatched = detectionResult.matchedColumns.includes(header);
+            const suggestion = detectionResult.suggestions.find(
+              s => s.csvColumn === header
+            );
+
+            return (
+              <tr key={header} className={isMatched ? 'matched' : 'unmatched'}>
+                <td className="csv-column">{header}</td>
+                <td className="sample-data">
+                  {/* Would show first row sample here */}
+                  <span className="sample-preview">...</span>
+                </td>
+                <td>
+                  <select
+                    value={mapping[header] || ''}
+                    onChange={(e) => handleMappingChange(header, e.target.value)}
+                    className={isMatched ? 'auto-detected' : ''}
+                  >
+                    {availableFields.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="status">
+                  {isMatched && <span className="badge success">Auto</span>}
+                  {!isMatched && suggestion && (
+                    <span className="badge warning">
+                      Maybe: {suggestion.possibleFields[0]?.field}?
+                    </span>
+                  )}
+                  {!isMatched && !suggestion && (
+                    <span className="badge info">Manual</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Suggestions panel */}
+      {detectionResult.suggestions.length > 0 && (
+        <div className="suggestions-panel">
+          <h4>Suggestions</h4>
+          {detectionResult.suggestions.map(suggestion => (
+            <div key={suggestion.csvColumn} className="suggestion-item">
+              <span className="column-name">"{suggestion.csvColumn}"</span>
+              <span className="arrow">→</span>
+              <div className="suggestions">
+                {suggestion.possibleFields.map(pf => (
+                  <button
+                    key={pf.field}
+                    className="suggestion-btn"
+                    onClick={() => handleMappingChange(suggestion.csvColumn, pf.field)}
+                  >
+                    {pf.field} ({Math.round(pf.confidence * 100)}%)
+                    <span className="reason">{pf.reason}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <footer className="mapping-actions">
+        <button className="btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        <button
+          className="btn-primary"
+          onClick={() => onConfirm(mapping)}
+          disabled={!hasRequiredFields}
+        >
+          Confirm Mapping
+        </button>
+        {!hasRequiredFields && (
+          <p className="error-hint">
+            Map required fields (name and room) to continue
+          </p>
+        )}
+      </footer>
+    </div>
+  );
+}
+
+// ============================================================================
+// UPDATED CSV IMPORT FLOW
+// ============================================================================
+
+async function importCSVWithMappingUI(
+  file: File,
+  onMappingRequired: (
+    headers: string[],
+    result: ColumnDetectionResult
+  ) => Promise<Record<string, string>>
+): Promise<Result<CSVImportResult, ParseError>> {
+
+  return new Promise((resolve) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      preview: 1,  // First just get headers
+      complete: async (previewResults) => {
+        const headers = previewResults.meta.fields || [];
+
+        // Detect columns
+        const detection = detectColumnMappingEnhanced(headers);
+
+        // If confidence is low or manual required, show UI
+        let finalMapping = detection.mapping;
+
+        if (detection.confidence === 'manual_required' ||
+            detection.confidence === 'low') {
+          // Show mapping UI and wait for user
+          finalMapping = await onMappingRequired(headers, detection);
+        }
+
+        // Now parse full file with confirmed mapping
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            // ... rest of parsing logic with finalMapping
+            const residents: Resident[] = [];
+            const warnings: string[] = [];
+
+            for (let i = 0; i < results.data.length; i++) {
+              const row = results.data[i] as Record<string, string>;
+              const resident = parseCSVRow(row, finalMapping, i + 2);
+
+              if (resident.ok) {
+                residents.push(resident.value);
+              } else {
+                warnings.push(`Row ${i + 2}: ${resident.error.message}`);
+              }
+            }
+
+            resolve(Ok({
+              residents,
+              warnings,
+              columnMapping: finalMapping
+            }));
+          }
+        });
+      }
+    });
+  });
+}
+
+// ============================================================================
+// COLUMN MAPPING PRESETS
+// ============================================================================
+
+// Common CSV formats from different systems
+const KNOWN_FORMATS: Record<string, Record<string, string>> = {
+  'Banner': {
+    'STUDENT_NAME': 'name',
+    'ROOM_NUMBER': 'room',
+    'EMAIL_ADDRESS': 'email',
+    'PHONE_NUMBER': 'phone',
+  },
+  'StarRez': {
+    'Resident Name': 'name',
+    'Room': 'room',
+    'Email': 'email',
+    'Mobile': 'phone',
+  },
+  'RMS': {
+    'Student': 'name',
+    'Assignment': 'room',
+    'School Email': 'email',
+    'Cell Phone': 'phone',
+  },
+  'Symplicity': {
+    'Full Name': 'name',
+    'Room Assignment': 'room',
+    'Primary Email': 'email',
+    'Phone': 'phone',
+  },
+};
+
+function detectKnownFormat(headers: string[]): string | null {
+  for (const [formatName, expectedMapping] of Object.entries(KNOWN_FORMATS)) {
+    const expectedHeaders = Object.keys(expectedMapping);
+    const matchCount = expectedHeaders.filter(h => headers.includes(h)).length;
+
+    // If 80%+ match, it's this format
+    if (matchCount >= expectedHeaders.length * 0.8) {
+      return formatName;
+    }
+  }
+  return null;
+}
+```
