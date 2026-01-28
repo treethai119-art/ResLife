@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheckIn - Resident Wellness</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    header {
+      background: #4a5568;
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+    header h1 { font-size: 24px; margin-bottom: 4px; }
+    header p { opacity: 0.8; font-size: 14px; }
+    .form-section {
+      padding: 24px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .form-section:last-child { border-bottom: none; }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .question {
+      margin-bottom: 20px;
+    }
+    .question label {
+      display: block;
+      font-size: 15px;
+      color: #2d3748;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .scale-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .scale-option {
+      flex: 1;
+      min-width: 60px;
+    }
+    .scale-option input { display: none; }
+    .scale-option span {
+      display: block;
+      padding: 12px 8px;
+      text-align: center;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .scale-option input:checked + span {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .scale-option:hover span {
+      border-color: #667eea;
+    }
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      resize: vertical;
+      min-height: 100px;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .submit-btn:hover { background: #5a67d8; }
+    .submit-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+    .nav-links {
+      text-align: center;
+      padding: 16px;
+      background: #f7fafc;
+    }
+    .nav-links a {
+      color: #667eea;
+      text-decoration: none;
+      margin: 0 12px;
+      font-size: 14px;
+    }
+    .success-message {
+      display: none;
+      padding: 40px;
+      text-align: center;
+    }
+    .success-message.show { display: block; }
+    .success-message h2 { color: #48bb78; margin-bottom: 12px; }
+    .hidden { display: none; }
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #718096;
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Weekly Check-In</h1>
+      <p>Takes about 2-3 minutes</p>
+    </header>
+
+    <form id="checkinForm">
+      <!-- Hidden fields -->
+      <input type="hidden" id="residentId" value="demo-resident-001">
+      <input type="hidden" id="raId" value="demo-ra-001">
+      <input type="hidden" id="floor" value="3E">
+
+      <!-- PHQ-2: Depression -->
+      <div class="form-section">
+        <div class="section-title">Over the last 2 weeks...</div>
+
+        <div class="question">
+          <label>1. Little interest or pleasure in doing things?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q1" value="0" required><span>Not at all</span></label>
+            <label class="scale-option"><input type="radio" name="q1" value="1"><span>Several days</span></label>
+            <label class="scale-option"><input type="radio" name="q1" value="2"><span>More than half</span></label>
+            <label class="scale-option"><input type="radio" name="q1" value="3"><span>Nearly every day</span></label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>2. Feeling down, depressed, or hopeless?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q2" value="0" required><span>Not at all</span></label>
+            <label class="scale-option"><input type="radio" name="q2" value="1"><span>Several days</span></label>
+            <label class="scale-option"><input type="radio" name="q2" value="2"><span>More than half</span></label>
+            <label class="scale-option"><input type="radio" name="q2" value="3"><span>Nearly every day</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAD-2: Anxiety -->
+      <div class="form-section">
+        <div class="question">
+          <label>3. Feeling nervous, anxious, or on edge?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q3" value="0" required><span>Not at all</span></label>
+            <label class="scale-option"><input type="radio" name="q3" value="1"><span>Several days</span></label>
+            <label class="scale-option"><input type="radio" name="q3" value="2"><span>More than half</span></label>
+            <label class="scale-option"><input type="radio" name="q3" value="3"><span>Nearly every day</span></label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>4. Not being able to stop or control worrying?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q4" value="0" required><span>Not at all</span></label>
+            <label class="scale-option"><input type="radio" name="q4" value="1"><span>Several days</span></label>
+            <label class="scale-option"><input type="radio" name="q4" value="2"><span>More than half</span></label>
+            <label class="scale-option"><input type="radio" name="q4" value="3"><span>Nearly every day</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- General wellbeing -->
+      <div class="form-section">
+        <div class="section-title">This Week</div>
+
+        <div class="question">
+          <label>5. How has your week been overall?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q5" value="1" required><span>1</span></label>
+            <label class="scale-option"><input type="radio" name="q5" value="2"><span>2</span></label>
+            <label class="scale-option"><input type="radio" name="q5" value="3"><span>3</span></label>
+            <label class="scale-option"><input type="radio" name="q5" value="4"><span>4</span></label>
+            <label class="scale-option"><input type="radio" name="q5" value="5"><span>5</span></label>
+          </div>
+          <div class="scale-labels"><span>Very bad</span><span>Excellent</span></div>
+        </div>
+
+        <div class="question">
+          <label>6. How well have you been sleeping?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q6" value="1" required><span>1</span></label>
+            <label class="scale-option"><input type="radio" name="q6" value="2"><span>2</span></label>
+            <label class="scale-option"><input type="radio" name="q6" value="3"><span>3</span></label>
+            <label class="scale-option"><input type="radio" name="q6" value="4"><span>4</span></label>
+            <label class="scale-option"><input type="radio" name="q6" value="5"><span>5</span></label>
+          </div>
+          <div class="scale-labels"><span>Very poorly</span><span>Very well</span></div>
+        </div>
+
+        <div class="question">
+          <label>7. How satisfied are you with your life right now?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q7" value="1" required><span>1</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="2"><span>2</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="3"><span>3</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="4"><span>4</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="5"><span>5</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="6"><span>6</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="7"><span>7</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="8"><span>8</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="9"><span>9</span></label>
+            <label class="scale-option"><input type="radio" name="q7" value="10"><span>10</span></label>
+          </div>
+          <div class="scale-labels"><span>Not at all</span><span>Completely</span></div>
+        </div>
+      </div>
+
+      <!-- UCLA-3: Loneliness -->
+      <div class="form-section">
+        <div class="section-title">Social Connection</div>
+
+        <div class="question">
+          <label>8. How often do you feel that you lack companionship?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q8" value="1" required><span>Hardly ever</span></label>
+            <label class="scale-option"><input type="radio" name="q8" value="2"><span>Some of the time</span></label>
+            <label class="scale-option"><input type="radio" name="q8" value="3"><span>Often</span></label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>9. How often do you feel left out?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q9" value="1" required><span>Hardly ever</span></label>
+            <label class="scale-option"><input type="radio" name="q9" value="2"><span>Some of the time</span></label>
+            <label class="scale-option"><input type="radio" name="q9" value="3"><span>Often</span></label>
+          </div>
+        </div>
+
+        <div class="question">
+          <label>10. How often do you feel isolated from others?</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q10" value="1" required><span>Hardly ever</span></label>
+            <label class="scale-option"><input type="radio" name="q10" value="2"><span>Some of the time</span></label>
+            <label class="scale-option"><input type="radio" name="q10" value="3"><span>Often</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Belonging -->
+      <div class="form-section">
+        <div class="section-title">Belonging</div>
+
+        <div class="question">
+          <label>11. I feel like I belong in this residence hall.</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q11" value="1" required><span>1</span></label>
+            <label class="scale-option"><input type="radio" name="q11" value="2"><span>2</span></label>
+            <label class="scale-option"><input type="radio" name="q11" value="3"><span>3</span></label>
+            <label class="scale-option"><input type="radio" name="q11" value="4"><span>4</span></label>
+            <label class="scale-option"><input type="radio" name="q11" value="5"><span>5</span></label>
+          </div>
+          <div class="scale-labels"><span>Strongly disagree</span><span>Strongly agree</span></div>
+        </div>
+
+        <div class="question">
+          <label>12. I feel like I fit in with other residents.</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q12" value="1" required><span>1</span></label>
+            <label class="scale-option"><input type="radio" name="q12" value="2"><span>2</span></label>
+            <label class="scale-option"><input type="radio" name="q12" value="3"><span>3</span></label>
+            <label class="scale-option"><input type="radio" name="q12" value="4"><span>4</span></label>
+            <label class="scale-option"><input type="radio" name="q12" value="5"><span>5</span></label>
+          </div>
+          <div class="scale-labels"><span>Strongly disagree</span><span>Strongly agree</span></div>
+        </div>
+
+        <div class="question">
+          <label>13. I feel part of a community here.</label>
+          <div class="scale-options">
+            <label class="scale-option"><input type="radio" name="q13" value="1" required><span>1</span></label>
+            <label class="scale-option"><input type="radio" name="q13" value="2"><span>2</span></label>
+            <label class="scale-option"><input type="radio" name="q13" value="3"><span>3</span></label>
+            <label class="scale-option"><input type="radio" name="q13" value="4"><span>4</span></label>
+            <label class="scale-option"><input type="radio" name="q13" value="5"><span>5</span></label>
+          </div>
+          <div class="scale-labels"><span>Strongly disagree</span><span>Strongly agree</span></div>
+        </div>
+      </div>
+
+      <!-- Open-ended -->
+      <div class="form-section">
+        <div class="section-title">Anything Else?</div>
+        <div class="question">
+          <label>14. Is there anything you'd like to share or talk about?</label>
+          <textarea name="q14" placeholder="Optional - share anything on your mind..."></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit Check-In</button>
+    </form>
+
+    <div id="successMessage" class="success-message">
+      <h2>Thank you!</h2>
+      <p>Your check-in has been recorded.</p>
+      <p style="margin-top: 20px; color: #718096;">Your RA will follow up if needed.</p>
+    </div>
+
+    <div class="nav-links">
+      <a href="/dashboard">RA Dashboard</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('checkinForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const btn = form.querySelector('.submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const data = {
+        residentId: document.getElementById('residentId').value,
+        raId: document.getElementById('raId').value,
+        floor: document.getElementById('floor').value,
+        q1_interest: parseInt(form.q1.value),
+        q2_depressed: parseInt(form.q2.value),
+        q3_anxious: parseInt(form.q3.value),
+        q4_worry: parseInt(form.q4.value),
+        q5_week: parseInt(form.q5.value),
+        q6_sleep: parseInt(form.q6.value),
+        q7_lifeSat: parseInt(form.q7.value),
+        q8_companionship: parseInt(form.q8.value),
+        q9_leftOut: parseInt(form.q9.value),
+        q10_isolated: parseInt(form.q10.value),
+        q11_belong: parseInt(form.q11.value),
+        q12_fitIn: parseInt(form.q12.value),
+        q13_community: parseInt(form.q13.value),
+        q14_concerns: form.q14.value
+      };
+
+      try {
+        const res = await fetch('/api/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+          form.classList.add('hidden');
+          document.getElementById('successMessage').classList.add('show');
+        } else {
+          alert('Error submitting. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Submit Check-In';
+        }
+      } catch (err) {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Check-In';
+      }
+    });
+  </script>
+</body>
+</html>

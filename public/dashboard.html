@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheckIn - RA Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f7fafc;
+      min-height: 100vh;
+    }
+    .header {
+      background: #4a5568;
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 20px; }
+    .header a { color: white; text-decoration: none; opacity: 0.8; }
+    .header a:hover { opacity: 1; }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .stat-card h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #718096;
+      margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+    .stat-card .subtext {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-top: 4px;
+    }
+    .alerts-section {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .section-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-header h2 { font-size: 16px; color: #2d3748; }
+    .alert-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .alert-tab {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      background: #edf2f7;
+      color: #4a5568;
+    }
+    .alert-tab.active { background: #667eea; color: white; }
+    .alert-tab.red { background: #fed7d7; color: #c53030; }
+    .alert-tab.orange { background: #feebc8; color: #c05621; }
+    .alert-tab.yellow { background: #fefcbf; color: #b7791f; }
+    .residents-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .resident-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f7fafc;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .resident-row:hover { background: #f7fafc; }
+    .resident-row.red { border-left: 4px solid #e53e3e; }
+    .resident-row.orange { border-left: 4px solid #ed8936; }
+    .resident-row.yellow { border-left: 4px solid #ecc94b; }
+    .resident-row.none { border-left: 4px solid #48bb78; }
+    .resident-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #4a5568;
+      margin-right: 16px;
+    }
+    .resident-info { flex: 1; }
+    .resident-name { font-weight: 600; color: #2d3748; }
+    .resident-meta { font-size: 13px; color: #718096; margin-top: 2px; }
+    .resident-score {
+      text-align: right;
+    }
+    .wellbeing-index {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .wellbeing-index.high { color: #48bb78; }
+    .wellbeing-index.medium { color: #ecc94b; }
+    .wellbeing-index.low { color: #e53e3e; }
+    .score-label {
+      font-size: 11px;
+      color: #a0aec0;
+    }
+    .alert-badges {
+      display: flex;
+      gap: 6px;
+      margin-left: 16px;
+    }
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.dep { background: #e9d8fd; color: #6b46c1; }
+    .badge.anx { background: #fed7e2; color: #b83280; }
+    .badge.lonely { background: #bee3f8; color: #2b6cb0; }
+    .badge.belong { background: #c6f6d5; color: #276749; }
+    .detail-panel {
+      display: none;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+    .detail-panel.show { display: block; }
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+    .detail-name { font-size: 24px; font-weight: 700; color: #2d3748; }
+    .detail-meta { color: #718096; margin-top: 4px; }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #a0aec0;
+    }
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .score-item {
+      background: #f7fafc;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    .score-item h4 {
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 4px;
+    }
+    .score-item .val {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .alert-reasons {
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .alert-reasons h4 {
+      color: #c53030;
+      margin-bottom: 8px;
+    }
+    .alert-reasons ul {
+      margin-left: 20px;
+      color: #742a2a;
+    }
+    .concerns-box {
+      background: #fffaf0;
+      border: 1px solid #feebc8;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .concerns-box h4 { color: #c05621; margin-bottom: 8px; }
+    .concerns-box p { color: #744210; line-height: 1.5; }
+    .no-data {
+      padding: 40px;
+      text-align: center;
+      color: #a0aec0;
+    }
+    .load-demo {
+      margin-top: 16px;
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .load-demo:hover { background: #5a67d8; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>RA Dashboard - Floor 3E</h1>
+    <a href="/">New Check-In</a>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <h3>Total Check-Ins</h3>
+        <div class="value" id="totalCheckins">0</div>
+        <div class="subtext">This week</div>
+      </div>
+      <div class="stat-card">
+        <h3>Avg Wellbeing</h3>
+        <div class="value" id="avgWellbeing">--</div>
+        <div class="subtext">Index (0-100)</div>
+      </div>
+      <div class="stat-card">
+        <h3>Needs Follow-Up</h3>
+        <div class="value" id="needsFollowup" style="color: #e53e3e;">0</div>
+        <div class="subtext">Residents flagged</div>
+      </div>
+      <div class="stat-card">
+        <h3>Response Rate</h3>
+        <div class="value" id="responseRate">0%</div>
+        <div class="subtext">Of floor</div>
+      </div>
+    </div>
+
+    <div class="alerts-section">
+      <div class="section-header">
+        <h2>Residents</h2>
+        <div class="alert-tabs">
+          <button class="alert-tab active" data-filter="all">All</button>
+          <button class="alert-tab red" data-filter="red">Urgent</button>
+          <button class="alert-tab orange" data-filter="orange">Concern</button>
+          <button class="alert-tab yellow" data-filter="yellow">Monitor</button>
+        </div>
+      </div>
+      <div class="residents-list" id="residentsList">
+        <div class="no-data">
+          <p>No check-in data yet.</p>
+          <button class="load-demo" onclick="loadDemoData()">Load Demo Data</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-header">
+        <div>
+          <div class="detail-name" id="detailName">Resident Name</div>
+          <div class="detail-meta" id="detailMeta">Room 301 | Last check-in: Today</div>
+        </div>
+        <button class="close-btn" onclick="closeDetail()">&times;</button>
+      </div>
+
+      <div class="scores-grid" id="scoresGrid"></div>
+
+      <div class="alert-reasons" id="alertReasons" style="display: none;">
+        <h4>Alert Reasons</h4>
+        <ul id="alertReasonsList"></ul>
+      </div>
+
+      <div class="concerns-box" id="concernsBox" style="display: none;">
+        <h4>Open Response</h4>
+        <p id="concernsText"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allData = [];
+    let currentFilter = 'all';
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/checkins');
+        const data = await res.json();
+        allData = data;
+        renderDashboard();
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      }
+    }
+
+    async function loadDemoData() {
+      try {
+        await fetch('/api/demo', { method: 'POST' });
+        await loadData();
+      } catch (err) {
+        console.error('Failed to load demo data:', err);
+      }
+    }
+
+    function renderDashboard() {
+      if (allData.length === 0) {
+        document.getElementById('residentsList').innerHTML = `
+          <div class="no-data">
+            <p>No check-in data yet.</p>
+            <button class="load-demo" onclick="loadDemoData()">Load Demo Data</button>
+          </div>
+        `;
+        return;
+      }
+
+      // Update stats
+      document.getElementById('totalCheckins').textContent = allData.length;
+      const avgIndex = Math.round(allData.reduce((a, b) => a + b.result.wellbeingIndex, 0) / allData.length);
+      document.getElementById('avgWellbeing').textContent = avgIndex;
+      const needsFollowup = allData.filter(d => d.result.flags.needsFollowUp).length;
+      document.getElementById('needsFollowup').textContent = needsFollowup;
+      document.getElementById('responseRate').textContent = Math.round((allData.length / 20) * 100) + '%';
+
+      // Filter and render list
+      let filtered = allData;
+      if (currentFilter !== 'all') {
+        filtered = allData.filter(d => d.result.alertLevel === currentFilter);
+      }
+
+      // Sort by alert level (red first)
+      const order = { red: 0, orange: 1, yellow: 2, none: 3 };
+      filtered.sort((a, b) => order[a.result.alertLevel] - order[b.result.alertLevel]);
+
+      const html = filtered.map((item, idx) => {
+        const r = item.result;
+        const initials = item.response.residentId.split('-').pop().substring(0, 2).toUpperCase();
+        const indexClass = r.wellbeingIndex >= 70 ? 'high' : r.wellbeingIndex >= 50 ? 'medium' : 'low';
+
+        let badges = '';
+        if (r.flags.depressionScreen) badges += '<span class="badge dep">DEP</span>';
+        if (r.flags.anxietyScreen) badges += '<span class="badge anx">ANX</span>';
+        if (r.flags.highLoneliness) badges += '<span class="badge lonely">LONELY</span>';
+        if (r.flags.lowBelonging) badges += '<span class="badge belong">BELONG</span>';
+
+        return `
+          <div class="resident-row ${r.alertLevel}" onclick="showDetail(${idx})">
+            <div class="resident-avatar">${initials}</div>
+            <div class="resident-info">
+              <div class="resident-name">${item.response.residentId}</div>
+              <div class="resident-meta">${item.response.floor} | ${new Date(item.response.timestamp).toLocaleDateString()}</div>
+            </div>
+            <div class="alert-badges">${badges}</div>
+            <div class="resident-score">
+              <div class="wellbeing-index ${indexClass}">${r.wellbeingIndex}</div>
+              <div class="score-label">wellbeing</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('residentsList').innerHTML = html || '<div class="no-data">No residents match this filter.</div>';
+    }
+
+    function showDetail(idx) {
+      const item = allData[idx];
+      const r = item.result;
+      const resp = item.response;
+
+      document.getElementById('detailName').textContent = resp.residentId;
+      document.getElementById('detailMeta').textContent = `${resp.floor} | Last check-in: ${new Date(resp.timestamp).toLocaleDateString()}`;
+
+      document.getElementById('scoresGrid').innerHTML = `
+        <div class="score-item"><h4>PHQ-2 (Depression)</h4><div class="val">${r.phq2}/6</div></div>
+        <div class="score-item"><h4>GAD-2 (Anxiety)</h4><div class="val">${r.gad2}/6</div></div>
+        <div class="score-item"><h4>UCLA-3 (Loneliness)</h4><div class="val">${r.ucla3}/9</div></div>
+        <div class="score-item"><h4>Belonging</h4><div class="val">${r.belonging}/5</div></div>
+        <div class="score-item"><h4>Week Rating</h4><div class="val">${r.weekRating}/5</div></div>
+        <div class="score-item"><h4>Sleep</h4><div class="val">${r.sleepRating}/5</div></div>
+        <div class="score-item"><h4>Life Satisfaction</h4><div class="val">${r.lifeSatisfaction}/10</div></div>
+        <div class="score-item"><h4>Wellbeing Index</h4><div class="val" style="color: ${r.wellbeingIndex >= 70 ? '#48bb78' : r.wellbeingIndex >= 50 ? '#ecc94b' : '#e53e3e'}">${r.wellbeingIndex}/100</div></div>
+      `;
+
+      if (r.alertReasons.length > 0) {
+        document.getElementById('alertReasons').style.display = 'block';
+        document.getElementById('alertReasonsList').innerHTML = r.alertReasons.map(reason => `<li>${reason}</li>`).join('');
+      } else {
+        document.getElementById('alertReasons').style.display = 'none';
+      }
+
+      if (resp.q14_concerns) {
+        document.getElementById('concernsBox').style.display = 'block';
+        document.getElementById('concernsText').textContent = resp.q14_concerns;
+      } else {
+        document.getElementById('concernsBox').style.display = 'none';
+      }
+
+      document.getElementById('detailPanel').classList.add('show');
+    }
+
+    function closeDetail() {
+      document.getElementById('detailPanel').classList.remove('show');
+    }
+
+    // Tab filtering
+    document.querySelectorAll('.alert-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.alert-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        renderDashboard();
+      });
+    });
+
+    // Initial load
+    loadData();
+  </script>
+</body>
+</html>
