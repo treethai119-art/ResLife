@@ -10,6 +10,7 @@
     "demo": "node --experimental-strip-types src/demo.ts"
   },
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "express": "^4.18.2"
   },
   "devDependencies": {
