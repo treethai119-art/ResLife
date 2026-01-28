@@ -869,3 +869,583 @@ const weights = {
 - UCLA-3 vs. UCLA-20: r ≥ 0.80
 - Belonging-3 vs. Hoffman full: r ≥ 0.70
 - Composite predicts outcomes: R² ≥ 0.15
+
+---
+
+# API-FREE PILOT IMPLEMENTATION
+
+**Goal:** Pilot with one class of RAs and one RD before presenting to institution for scaling.
+
+## Why API-Free?
+
+| Approach | Cost | Complexity | Suitable For |
+|----------|------|------------|--------------|
+| Full API (Twilio + AWS) | $100-500/mo | High (developer needed) | Institution-wide |
+| **API-Free Pilot** | **$0-50/mo** | **Low (no-code)** | **1 RD + 10 RAs** |
+
+## Recommended Tech Stack (Zero Cost)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         API-FREE PILOT ARCHITECTURE                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   SMS/TEXT   │     │   SURVEY     │     │    DATA      │     │  DASHBOARD   │
+│   TRIGGER    │────▶│   FORM       │────▶│   STORAGE    │────▶│   VIEW       │
+│              │     │              │     │              │     │              │
+│ • Remind     │     │ • Google     │     │ • Google     │     │ • Sheets     │
+│ • Google     │     │   Forms      │     │   Sheets     │     │   charts     │
+│   Voice      │     │ • Typeform   │     │ • Auto-calc  │     │ • Filters    │
+│ • Personal   │     │   (free)     │     │   scores     │     │ • Color      │
+│   cell       │     │              │     │              │     │   coding     │
+└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+```
+
+## Step-by-Step Setup
+
+### 1. SMS Channel Options
+
+| Platform | Cost | Features | Best For |
+|----------|------|----------|----------|
+| **Remind** | Free (edu) | 2-way texting, polls, broadcasts | Easiest setup |
+| **Google Voice** | Free | Personal number, forwarding | Smallest pilot |
+| **Textedly** | $30/mo | Keyword triggers, automation | Scaling later |
+
+**Recommendation:** Start with Remind (free, educator-focused) OR Google Voice (zero setup).
+
+### 2. Questionnaire Delivery
+
+**Option A: Link-Based (Recommended)**
+```
+RA texts: "Hey [Name]! Quick 2-min check-in: [Google Form link]"
+Student: Clicks link → answers in mobile browser → submits
+Data: Lands in Google Sheet automatically
+```
+
+**Option B: Pure SMS (Keyword Replies)**
+```
+RA texts: "Ready for check-in? Reply START"
+Student: "START"
+System: "Q1: Rate your week 1-5"
+Student: "3"
+System: "Q2: Feeling down? 1=Not at all, 2=Several days..."
+...
+```
+
+### 3. Google Forms Setup
+
+Create form with sections matching questionnaire:
+
+```
+SECTION A: HOW'S IT GOING?
+├── Q1: Week rating (Linear scale 1-5)
+├── Q2-Q5: PHQ-4 items (Multiple choice: Not at all → Nearly every day)
+├── Q6: Sleep quality (Linear scale 1-5)
+└── Q7: Life satisfaction (Linear scale 0-10)
+
+SECTION B: CONNECTIONS
+├── Q8-Q10: UCLA-3 (Multiple choice: Hardly ever → Often)
+└── Q11-Q13: Belonging (Linear scale 1-5)
+
+SECTION C: STRESSORS
+├── Q14: Energy drains (Checkboxes)
+└── Q15: Resources wanted (Checkboxes)
+
+SECTION D: FOLLOW-UP
+├── Q16: Want to meet? (Multiple choice)
+└── Q17: Anything else? (Paragraph - optional)
+```
+
+### 4. Google Sheets Scoring Dashboard
+
+**Tab 1: Raw Responses** (auto-populated from Form)
+
+**Tab 2: Scored Data** (add formulas)
+```
+| Name | PHQ2 | GAD2 | UCLA3 | Belong | Index | Flags |
+|------|------|------|-------|--------|-------|-------|
+| =A2  | =SUM(C2:D2) | =SUM(E2:F2) | =SUM(H2:J2) | =AVG(K2:M2) | [formula] | =IF(PHQ2>=3,"⚠️","") |
+```
+
+**Scoring Formulas:**
+```
+PHQ-2:     =SUM(Q2_response + Q3_response)      // 0-6
+GAD-2:     =SUM(Q4_response + Q5_response)      // 0-6
+UCLA-3:    =SUM(Q8 + Q9 + Q10)                  // 3-9
+Belonging: =AVERAGE(Q11, Q12, Q13)             // 1-5
+
+Wellbeing Index (simplified):
+=ROUND(100 - (PHQ2/6*25 + GAD2/6*20 + (UCLA3-3)/6*20 + (5-Belong)/4*15 + (5-Sleep)/4*10 + (10-LifeSat)/10*10))
+
+Flags:
+=IF(PHQ2>=3, "🟡 Depression", "") & IF(UCLA3>=7, "🟡 Loneliness", "") & IF(PHQ2>=5, "🔴 URGENT", "")
+```
+
+**Tab 3: RD Dashboard** (aggregates)
+```
+| Floor | Avg Index | % Green | % Yellow | % Orange/Red | Top Stressor |
+|-------|-----------|---------|----------|--------------|--------------|
+| 3E    | =AVERAGEIF(...) | =COUNTIF(...)/COUNT(...) | ... | ... | =MODE(...) |
+```
+
+### 5. Alert Protocol (Manual but Effective)
+
+```
+DAILY WORKFLOW:
+
+Morning:
+├── Check Sheet for new submissions
+├── Sort by "Flags" column
+└── Review any 🔴 RED immediately
+
+Per Submission:
+├── 🟢 GREEN (no flags): Log as complete
+├── 🟡 YELLOW (1 flag): Schedule RA follow-up within 1 week
+├── 🟠 ORANGE (2+ flags): RA follow-up within 48 hrs, notify RD
+└── 🔴 RED (urgent): Immediate door knock, RD involved
+
+Weekly:
+├── Review aggregate trends
+├── Identify floor-wide patterns
+└── Plan targeted interventions
+```
+
+### 6. Email Alerts Setup
+
+Use Google Apps Script (no coding knowledge needed):
+
+```javascript
+// Paste in Tools > Script Editor > Save > Set trigger
+function checkForAlerts() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Scored Data');
+  var data = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    var flags = data[i][6];  // Adjust column index for Flags
+    if (flags.includes('🔴')) {
+      MailApp.sendEmail(
+        'rd@school.edu',
+        '🔴 URGENT CheckIn Alert',
+        'Resident ' + data[i][0] + ' flagged urgent. Review immediately.'
+      );
+    }
+  }
+}
+```
+
+Set trigger: Run `checkForAlerts` on form submission.
+
+## Pilot Timeline
+
+```
+WEEK 1: SETUP
+├── Create Google Form (1 hour)
+├── Build scoring Sheet (2 hours)
+├── Test with 3 mock submissions
+└── Train RAs on protocol (30 min meeting)
+
+WEEKS 2-3: SOFT LAUNCH
+├── 10-15 residents per RA
+├── Daily monitoring by RD
+├── Fix any issues
+└── Gather RA feedback
+
+WEEKS 4-10: FULL PILOT
+├── All RA residents (~150-200 total)
+├── Weekly check-ins (or bi-weekly)
+├── Track: completion rate, flag accuracy, interventions
+└── Document case studies (anonymized)
+
+WEEKS 11-12: ANALYSIS & PRESENTATION
+├── Export all data
+├── Calculate: % screened positive, avg wellbeing, trend
+├── Compare: flagged residents vs. unflagged outcomes
+└── Build presentation for institution
+```
+
+## Presentation Metrics to Collect
+
+| Metric | Why It Matters |
+|--------|----------------|
+| Completion rate | "87% of residents completed check-ins" |
+| Depression screening | "14% screened positive for depression symptoms" |
+| Early interventions | "23 residents connected to counseling before crisis" |
+| Trend detection | "Identified 8 residents with declining trajectories" |
+| Floor patterns | "Floor 3E had elevated loneliness; implemented study groups" |
+| Time savings | "RAs identified at-risk residents in 2 min vs. 30 min meetings" |
+
+## Cost Summary
+
+| Item | Cost | Notes |
+|------|------|-------|
+| Google Forms/Sheets | $0 | Use institutional Google Workspace |
+| Remind (optional) | $0 | Free for educators |
+| Your time | ~5 hrs/week | Decreases after setup |
+| **Total** | **$0** | Scale justifies investment later |
+
+---
+
+# ACTIVITY/ENGAGEMENT INSTRUMENTS
+
+**Purpose:** Activity data serves dual functions:
+1. Creates edges in community topology graph (shared interests → connections)
+2. Measures engagement (validated predictor of retention)
+
+## Theoretical Foundation
+
+| Theory | Citation | Core Finding |
+|--------|----------|--------------|
+| Astin's Involvement | Astin, 1984 (12,000+ citations) | Involvement quantity/quality → outcomes |
+| Tinto's Integration | Tinto, 1993 (8,000+ citations) | Academic + social integration → retention |
+| Kuh's High-Impact | Kuh, 2008 (3,000+ citations) | Specific practices disproportionately matter |
+
+## Validated Instruments
+
+### 1. NSSE Engagement Indicators
+**Source:** Indiana University (National Survey of Student Engagement)
+**Measures:** Collaborative learning, faculty interaction, campus environment
+
+Selected items for adaptation:
+- "How often have you worked with other students on course projects?"
+- "How often have you discussed ideas from readings/classes with others outside of class?"
+
+### 2. Extracurricular Involvement Inventory (EII)
+**Citation:** Winston & Massaro, 1987
+**Measures:** Breadth, depth, and leadership in activities
+
+| Dimension | Definition | Items |
+|-----------|------------|-------|
+| Breadth | Number of different activity types | List participation |
+| Depth | Hours per week in activities | Time estimate |
+| Quality | Leadership roles held | Role selection |
+
+### 3. College Student Experiences Questionnaire (CSEQ)
+**Citation:** Pace & Kuh, 1998
+**Measures:** Campus facility use, organization activity
+
+## Proposed Activity Module
+
+### Once Per Semester: Full Activity Survey (~3 min)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Activity & Interests Profile                                                │
+│  Complete once at start of semester                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ACADEMIC
+──────────────────────────────────────────────────────────────────────────────
+
+A1. What classes are you taking this semester? (Select all)
+    [Dropdown or text entry - populates shared class edges]
+
+A2. How many hours per week do you typically study?
+    ○ 0-5 hrs  ○ 6-10 hrs  ○ 11-15 hrs  ○ 16-20 hrs  ○ 21+ hrs
+
+A3. Where do you usually study? (Select all)
+    □ My room  □ Floor lounge  □ Library  □ Coffee shop  □ Other
+
+ACTIVITIES & ORGANIZATIONS
+──────────────────────────────────────────────────────────────────────────────
+
+A4. Which activities/organizations are you involved in? (Select all)
+    □ Intramural sports          □ Greek life
+    □ Club sports                □ Cultural organizations
+    □ Academic clubs             □ Service/volunteer groups
+    □ Student government         □ Religious organizations
+    □ Arts/music groups          □ Professional organizations
+    □ Residence hall council     □ Other: _______
+    □ None currently
+
+A5. For your primary activity, what is your role?
+    ○ New member  ○ Active member  ○ Committee/team leader  ○ Officer/Executive
+
+A6. How many hours per week do you spend on extracurriculars?
+    ○ 0 hrs  ○ 1-3 hrs  ○ 4-6 hrs  ○ 7-10 hrs  ○ 11+ hrs
+
+INTERESTS & HOBBIES
+──────────────────────────────────────────────────────────────────────────────
+
+A7. What are you interested in? (Select all - used for introductions)
+    □ Working out/fitness        □ Video games
+    □ Outdoor activities         □ Board games/tabletop
+    □ Movies/TV shows            □ Reading
+    □ Music (listening)          □ Music (playing)
+    □ Art/creative projects      □ Cooking/baking
+    □ Sports (watching)          □ Fashion
+    □ Technology/coding          □ Photography
+    □ Travel                     □ Social causes/activism
+    □ Other: _______
+
+A8. Would you like to be connected with others who share your interests?
+    ○ Yes, definitely!  ○ Maybe  ○ Not right now
+
+EMPLOYMENT
+──────────────────────────────────────────────────────────────────────────────
+
+A9. Are you currently working?
+    ○ No
+    ○ Yes, on campus (_____ hrs/week)
+    ○ Yes, off campus (_____ hrs/week)
+
+BARRIERS (Engagement Challenges)
+──────────────────────────────────────────────────────────────────────────────
+
+A10. What makes it hard to get involved? (Select all that apply)
+     □ Too busy with classes
+     □ Work schedule conflicts
+     □ Don't know what's available
+     □ Haven't found my group yet
+     □ Transportation issues
+     □ Cost of participation
+     □ Social anxiety/nervousness
+     □ Nothing - I'm happy with my involvement
+     □ Other: _______
+```
+
+### Every Check-In: Quick Activity Update (~15 sec)
+
+```
+ACTIVITY UPDATE (added to regular check-in)
+──────────────────────────────────────────────────────────────────────────────
+
+U1. Any new activities or groups you've joined since last check-in?
+    ○ No  ○ Yes: _______
+
+U2. Want us to help connect you with anyone on your floor?
+    ○ Yes - someone with similar interests
+    ○ Yes - someone in my classes
+    ○ Yes - just someone to hang out with
+    ○ No, I'm good
+```
+
+## Dual-Purpose Data Flow
+
+```
+                           ACTIVITIES DATA
+                                 │
+           ┌─────────────────────┴─────────────────────┐
+           │                                           │
+           ▼                                           ▼
+    TOPOLOGY ENGINE                           ENGAGEMENT INDEX
+    (Creates graph edges)                     (Predicts outcomes)
+           │                                           │
+           │  Shared class    = +2.0 edge              │  Breadth score (count)
+           │  Shared activity = +1.5 edge              │  Depth (hours)
+           │  Shared interest = +1.0 edge              │  Leadership (role)
+           │  Same study spot = +0.5 edge              │  Satisfaction
+           │                                           │  Barriers identified
+           │                                           │
+           ▼                                           ▼
+    COMMUNITY STRUCTURE                       INDIVIDUAL RISK FLAGS
+    (β₀, β₁, bridges)                        (Under-engaged, isolated)
+           │                                           │
+           └─────────────────────┬─────────────────────┘
+                                 │
+                                 ▼
+                        COMBINED INSIGHTS
+                        ┌────────────────────────────┐
+                        │ "Sarah is a boundary       │
+                        │ resident with low          │
+                        │ engagement. She shares     │
+                        │ interests with 3 core      │
+                        │ residents → intro oppty"   │
+                        └────────────────────────────┘
+```
+
+## Engagement Scoring
+
+```typescript
+interface EngagementScores {
+  breadth: number;           // Count of activity types (0-10+)
+  depth: number;             // Hours per week (0-20+)
+  leadership: number;        // 1=none, 2=member, 3=active, 4=leader, 5=exec
+  studyIntegration: number;  // Study with others frequency (1-5)
+  barrierCount: number;      // Number of barriers selected
+
+  // Composite
+  engagementIndex: number;   // 0-100
+
+  // Flags
+  underEngaged: boolean;     // breadth=0 AND depth=0
+  isolatedStudier: boolean;  // Always studies alone
+  hasBarriers: boolean;      // 2+ barriers selected
+}
+
+function computeEngagementIndex(scores: EngagementScores): number {
+  // Normalize each component
+  const breadthScore = Math.min(scores.breadth / 5, 1) * 100;      // Cap at 5 activities
+  const depthScore = Math.min(scores.depth / 10, 1) * 100;         // Cap at 10 hrs
+  const leadershipScore = ((scores.leadership - 1) / 4) * 100;
+  const socialStudyScore = ((scores.studyIntegration - 1) / 4) * 100;
+  const barrierPenalty = Math.min(scores.barrierCount * 10, 30);   // Max 30pt penalty
+
+  // Weighted average
+  return Math.round(
+    breadthScore * 0.25 +
+    depthScore * 0.25 +
+    leadershipScore * 0.20 +
+    socialStudyScore * 0.20 +
+    10 -                      // Base points
+    barrierPenalty * 0.10     // Barrier deduction
+  );
+}
+```
+
+## Novel Research Questions
+
+Connecting topology to engagement literature:
+
+| Hypothesis | Variables | Expected Finding |
+|------------|-----------|------------------|
+| H1 | Boundary position → engagement satisfaction | Boundary residents less satisfied with involvement |
+| H2 | Shared-class edges → study collaboration | More class connections = more collaborative study |
+| H3 | Structural holes → "don't know what's available" | Gap positions correlate with awareness barrier |
+| H4 | Bridge residents → leadership roles | Connectors more likely to hold leadership |
+
+**Publication angle:** "Does Position in Residential Social Network Topology Predict Co-Curricular Engagement? A Novel Application of Algebraic Topology to Student Involvement Theory"
+
+---
+
+# COMPLETE CHECKIN SURVEY STRUCTURE
+
+## Summary View
+
+| Module | Items | When | Time | Validation |
+|--------|-------|------|------|------------|
+| **Wellbeing** (PHQ-4, UCLA-3, Belonging, Singles) | 13 | Every check-in | 90 sec | 7,500+ combined citations |
+| **Activity Profile** (Classes, Orgs, Interests, Barriers) | 10 | Once/semester | 3 min | NSSE/EII validated |
+| **Quick Update** (New activities, connection requests) | 2 | Every check-in | 15 sec | Face valid |
+| **Stressors & Resources** | 4 | Every check-in | 30 sec | Practical utility |
+| **TOTAL (regular check-in)** | **17** | - | **~2-3 min** | - |
+| **TOTAL (with full activity)** | **27** | - | **~5-6 min** | - |
+
+## Data Integration
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           COMPLETE DATA MODEL                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PER RESIDENT:
+├── Demographics (from roster)
+│   ├── Name, Room, Email, Phone
+│   └── Year, Major (if available)
+│
+├── Activity Profile (semester)
+│   ├── Classes → [creates edges]
+│   ├── Organizations → [creates edges]
+│   ├── Interests → [creates edges]
+│   ├── Study habits
+│   ├── Employment status
+│   └── Barriers
+│
+├── Check-In History (longitudinal)
+│   ├── Timestamp
+│   ├── Wellbeing scores (PHQ-2, GAD-2, UCLA-3, belonging, etc.)
+│   ├── Composite index
+│   ├── Flags triggered
+│   ├── Stressors selected
+│   ├── Resources requested
+│   └── Follow-up preference
+│
+└── Topology Position (computed)
+    ├── Centrality score
+    ├── Boundary score
+    ├── Bridge status
+    ├── Component membership
+    └── Connection count
+
+PER FLOOR:
+├── Aggregate wellbeing metrics
+├── Topology metrics (β₀, β₁)
+├── Common stressors
+├── Engagement distribution
+└── Trend analysis
+```
+
+## Implementation Phases
+
+```
+PHASE 1: WELLBEING PILOT (Weeks 1-6)
+────────────────────────────────────────────────────────────────────────────
+✓ Deploy 17-item wellbeing check-in
+✓ Manual scoring in Google Sheets
+✓ Establish alert protocols
+✓ Train RAs on interpretation
+Output: Completion rates, flag accuracy, RA feedback
+
+PHASE 2: ACTIVITY INTEGRATION (Weeks 7-10)
+────────────────────────────────────────────────────────────────────────────
+○ Deploy activity profile survey
+○ Build edge weights from shared attributes
+○ Compute initial topology metrics
+○ Add engagement scoring
+Output: Community graph, engagement index, intro suggestions
+
+PHASE 3: FULL INTEGRATION (Weeks 11-14)
+────────────────────────────────────────────────────────────────────────────
+○ Correlate topology position with wellbeing
+○ Validate hypotheses (H1-H4)
+○ Generate research findings
+○ Prepare presentation for institution
+Output: Publishable findings, scaling proposal
+
+PHASE 4: SCALING (Post-Pilot)
+────────────────────────────────────────────────────────────────────────────
+○ Present to ResLife leadership
+○ Secure institutional support
+○ Migrate to proper tech stack (if approved)
+○ Expand to additional buildings
+Output: Institution-wide deployment
+```
+
+---
+
+# APPENDIX: GOOGLE SHEETS TEMPLATE
+
+## Tab Structure
+
+| Tab Name | Purpose | Auto/Manual |
+|----------|---------|-------------|
+| `Raw Responses` | Form submission data | Auto (linked to Form) |
+| `Scored Data` | Calculated scores + flags | Auto (formulas) |
+| `Individual View` | Per-resident detail lookup | Manual lookup |
+| `Floor Dashboard` | Aggregate metrics + charts | Auto (pivot tables) |
+| `Trends` | Longitudinal analysis | Auto (charts) |
+| `Activity Edges` | Connection matrix | Semi-auto |
+| `Alert Log` | Record of follow-ups | Manual entry |
+
+## Key Formulas
+
+```
+// PHQ-2 Score (assuming columns C & D have Q2 & Q3 responses)
+=IF(C2="Not at all",0,IF(C2="Several days",1,IF(C2="More than half",2,3)))
+  + IF(D2="Not at all",0,IF(D2="Several days",1,IF(D2="More than half",2,3)))
+
+// UCLA-3 Score (columns H, I, J for Q8-Q10)
+=IF(H2="Hardly ever",1,IF(H2="Some of the time",2,3))
+  + IF(I2="Hardly ever",1,IF(I2="Some of the time",2,3))
+  + IF(J2="Hardly ever",1,IF(J2="Some of the time",2,3))
+
+// Belonging Mean (columns K, L, M for Q11-Q13, assuming 1-5 numeric)
+=AVERAGE(K2:M2)
+
+// Depression Flag
+=IF(PHQ2_cell>=3, "🟡 DEP", "")
+
+// Urgent Flag
+=IF(PHQ2_cell>=5, "🔴 URGENT", IF(AND(PHQ2_cell>=3, UCLA3_cell>=7), "🟠 CONCERN", ""))
+
+// Wellbeing Index (simplified)
+=ROUND(100 * (1 - PHQ2/6*0.2 - GAD2/6*0.15 - (UCLA3-3)/6*0.2 - (5-Belong)/4*0.15 - (5-Week)/4*0.1 - (5-Sleep)/4*0.1 - (10-LifeSat)/10*0.1))
+
+// Floor Average
+=AVERAGEIF(Floor_column, "3E", Index_column)
+
+// Conditional Formatting Rule (for row highlighting)
+Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🔴")  → Red background
+Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🟠")  → Orange background
+Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🟡")  → Yellow background
+```
