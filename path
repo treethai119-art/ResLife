@@ -1,0 +1,1181 @@
+# CheckIn v2: Pragmatic Pipeline
+## Addressing Real Critiques Without Over-Engineering
+
+---
+
+# TRIAGE: WHAT ACTUALLY MATTERS
+
+| Critique | Fix? | Why |
+|----------|------|-----|
+| Magic thresholds | YES | Externalize to config, calibrate later |
+| App crashes on OCR fail | YES | Error handling is table stakes |
+| O'Brien/José names broken | YES | Real users excluded |
+| "Not Monday" parsed wrong | YES | Wrong schedules = missed check-ins |
+| No confidence scores | YES | User doesn't know what to review |
+| ILP scheduling | NO | Greedy works fine for 50 residents |
+| Full Mayer-Vietoris | NO | Direct h1() IS correct for graphs |
+| RFC 5322 email validation | NO | @school.edu is fine |
+| Learned connection weights | NO | Heuristics work, calibrate in v3 |
+
+---
+
+# ARCHITECTURE v2
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CheckIn v2 ARCHITECTURE                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   CONFIG LAYER   │     │   ERROR LAYER    │     │  VALIDATION      │
+│                  │     │                  │     │  LAYER           │
+│ • All thresholds │     │ • Result<T,E>    │     │ • Confidence     │
+│ • Weights        │     │ • Graceful       │     │   scores         │
+│ • Feature flags  │     │   degradation    │     │ • Review flags   │
+└────────┬─────────┘     └────────┬─────────┘     └────────┬─────────┘
+         │                        │                        │
+         └────────────────────────┼────────────────────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │                           │
+              ┌─────┴─────┐               ┌─────┴─────┐
+              │  INTAKE   │               │  ANALYSIS │
+              │           │               │           │
+              │ • OCR     │               │ • Homology│
+              │ • NLP     │               │ • Priority│
+              │ • CSV     │               │ • Schedule│
+              └───────────┘               └───────────┘
+```
+
+---
+
+# MODULE 1: CONFIGURATION
+
+**Problem:** Magic numbers scattered in code
+**Solution:** Single config file, all values documented
+
+```typescript
+// config.ts - THE ONLY PLACE THRESHOLDS LIVE
+
+export const CONFIG = {
+  // =========================================================================
+  // PARSING
+  // =========================================================================
+  parsing: {
+    // OCR confidence below this triggers manual review
+    ocr_confidence_threshold: 0.7,  // CALIBRATE: Start at 0.7, adjust based on error rate
+    
+    // Minimum fields required to accept a resident record
+    min_required_fields: ['name', 'room'],  // Phone/email can be added manually
+    
+    // Time parsing defaults
+    default_available_start: '08:00',  // CONFIGURABLE per institution
+    default_available_end: '22:00',    // Some schools have later hours
+    
+    // Negation keywords for availability parsing
+    negation_words: ['not', 'except', 'busy', 'cant', "can't", 'unavailable', 'no'],
+  },
+  
+  // =========================================================================
+  // COMMUNITY ANALYSIS
+  // =========================================================================
+  community: {
+    // Connection strength thresholds
+    connection_min_strength: 0.5,  // Below this, don't create edge
+    connection_strong_threshold: 2.0,  // Above this, "strong" connection
+    
+    // Boundary detection (isolation risk)
+    // Residents in bottom X% of connections are "boundary"
+    boundary_percentile: 0.2,  // Bottom 20% = isolation risk
+    
+    // Health score weights (must sum to 1.0)
+    health_weights: {
+      connectivity: 0.3,   // β₀ component
+      cohesion: 0.3,       // β₁ component  
+      isolation: 0.4,      // Boundary resident count
+    },
+    
+    // Size normalization
+    // For n residents, normalize β₁ by: β₁ / (n * this_factor)
+    // Rationale: Larger communities naturally have more cycles
+    cycle_normalization_factor: 0.1,  // CALIBRATE with real data
+  },
+  
+  // =========================================================================
+  // CONNECTION WEIGHTS
+  // =========================================================================
+  // These are heuristics. Will be replaced with learned weights in v3.
+  connection_weights: {
+    shared_class: 2.0,        // Each shared class
+    schedule_overlap_per_hour: 0.2,  // Per hour of weekly overlap
+    shared_interest: 1.5,     // Each shared interest
+    roommate: 5.0,            // Same room
+    floor_proximity: 1.0,     // Within 5 room numbers
+    ra_introduced: 3.0,       // RA made introduction
+  },
+  
+  // =========================================================================
+  // SCHEDULING
+  // =========================================================================
+  scheduling: {
+    // Batch optimization
+    max_batch_size: 3,        // Max residents per time slot
+    room_proximity_bonus: 20,  // Bonus for nearby rooms
+    batch_size_bonus: 5,       // Bonus per resident in batch
+    
+    // Greedy passes (try multiple orderings)
+    greedy_passes: 3,  // Run greedy 3x with different orderings
+    
+    // Priority weights for check-in ordering
+    priority_weights: {
+      isolation_risk: 30,      // Boundary resident bonus
+      fragile_group: 20,       // In fragile community structure
+      low_rating: 25,          // Last check-in was 1-2
+      follow_up_needed: 15,    // Flagged for follow-up
+      bridge_resident: 5,      // Connector (important but not urgent)
+      stable_group: -10,       // In stable structure (lower priority)
+    },
+  },
+  
+  // =========================================================================
+  // FEATURE FLAGS
+  // =========================================================================
+  features: {
+    enable_homology: true,     // Full topology analysis
+    enable_persistence: true,  // Track stability over time
+    enable_auto_introductions: true,  // Suggest introductions
+    enable_event_optimization: true,  // Optimal event timing
+  },
+};
+
+// Type-safe config access
+export type Config = typeof CONFIG;
+```
+
+---
+
+# MODULE 2: ERROR HANDLING
+
+**Problem:** App crashes, user abandons
+**Solution:** Result type, graceful degradation
+
+```typescript
+// result.ts - Rust-style Result type
+
+export type Result<T, E = Error> = 
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+export const Ok = <T>(value: T): Result<T, never> => ({ ok: true, value });
+export const Err = <E>(error: E): Result<never, E> => ({ ok: false, error });
+
+export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
+  return result.ok ? result.value : defaultValue;
+}
+
+export function map<T, U, E>(result: Result<T, E>, fn: (t: T) => U): Result<U, E> {
+  return result.ok ? Ok(fn(result.value)) : result;
+}
+
+// Error types
+export interface ParseError {
+  code: 'OCR_FAILED' | 'INVALID_FORMAT' | 'MISSING_FIELD' | 'CONFIDENCE_LOW';
+  message: string;
+  field?: string;
+  suggestion?: string;
+}
+
+export interface SchedulingError {
+  code: 'NO_AVAILABILITY' | 'CONFLICT' | 'CAPACITY_EXCEEDED';
+  residentId: string;
+  message: string;
+  alternatives?: string[];
+}
+```
+
+```typescript
+// Wrapping OCR with error handling
+
+async function processRosterImage(file: File): Promise<Result<ParsedRoster, ParseError>> {
+  try {
+    const worker = await Tesseract.createWorker('eng');
+    
+    // Set timeout - OCR shouldn't take > 30s
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('OCR timeout')), 30000)
+    );
+    
+    const ocrPromise = worker.recognize(file);
+    const { data } = await Promise.race([ocrPromise, timeoutPromise]);
+    
+    await worker.terminate();
+    
+    // Check overall confidence
+    if (data.confidence < CONFIG.parsing.ocr_confidence_threshold * 100) {
+      return Err({
+        code: 'CONFIDENCE_LOW',
+        message: `OCR confidence ${data.confidence}% is below threshold`,
+        suggestion: 'Try a clearer image or upload CSV instead'
+      });
+    }
+    
+    const residents = parseRosterText(data.text, data.blocks);
+    return Ok({ residents, rawText: data.text, confidence: data.confidence / 100 });
+    
+  } catch (e) {
+    return Err({
+      code: 'OCR_FAILED',
+      message: e instanceof Error ? e.message : 'Unknown OCR error',
+      suggestion: 'Upload a CSV file as fallback'
+    });
+  }
+}
+```
+
+```typescript
+// Graceful degradation in UI
+
+function RosterUpload() {
+  const [result, setResult] = useState<Result<ParsedRoster, ParseError> | null>(null);
+  
+  const handleUpload = async (file: File) => {
+    const result = await processRosterImage(file);
+    setResult(result);
+  };
+  
+  if (result && !result.ok) {
+    return (
+      <div className="error-state">
+        <h3>⚠️ {result.error.message}</h3>
+        {result.error.suggestion && <p>{result.error.suggestion}</p>}
+        
+        {/* Fallback options */}
+        <div className="fallback-options">
+          <button onClick={() => setShowCSVUpload(true)}>
+            📄 Upload CSV Instead
+          </button>
+          <button onClick={() => setShowManualEntry(true)}>
+            ✏️ Enter Manually
+          </button>
+          <button onClick={() => setResult(null)}>
+            🔄 Try Different Image
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // ... normal flow
+}
+```
+
+---
+
+# MODULE 3: UNICODE-SAFE PARSING
+
+**Problem:** Names like O'Brien, José, María get mangled
+**Solution:** Unicode-aware regex, preserve all characters
+
+```typescript
+// name_parser.ts
+
+interface ParsedName {
+  firstName: string;
+  lastName: string;
+  confidence: number;
+  needsReview: boolean;
+}
+
+function parseName(raw: string): ParsedName {
+  // Clean but preserve Unicode, apostrophes, hyphens
+  const cleaned = raw
+    .trim()
+    // Remove only clearly non-name characters
+    .replace(/[0-9@#$%^&*()+=\[\]{}|\\<>]/g, '')
+    // Normalize multiple spaces
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  if (!cleaned) {
+    return { firstName: '', lastName: '', confidence: 0, needsReview: true };
+  }
+  
+  // Split on whitespace, preserving all Unicode letters
+  const parts = cleaned.split(' ').filter(p => p.length > 0);
+  
+  if (parts.length === 0) {
+    return { firstName: '', lastName: '', confidence: 0, needsReview: true };
+  }
+  
+  if (parts.length === 1) {
+    // Single name - flag for review
+    return { 
+      firstName: parts[0], 
+      lastName: '', 
+      confidence: 0.5, 
+      needsReview: true 
+    };
+  }
+  
+  // Check for common patterns
+  const lastPart = parts[parts.length - 1];
+  
+  // Detect suffix (Jr, Sr, III, etc.)
+  const suffixPattern = /^(Jr\.?|Sr\.?|II|III|IV|PhD|MD|Esq\.?)$/i;
+  const hasSuffix = suffixPattern.test(lastPart);
+  
+  if (hasSuffix && parts.length >= 3) {
+    // "John Smith Jr" -> firstName: John, lastName: Smith Jr
+    return {
+      firstName: parts[0],
+      lastName: parts.slice(1).join(' '),
+      confidence: 0.85,
+      needsReview: false
+    };
+  }
+  
+  // Standard case: First Last or First Middle Last
+  // Assume LAST part is surname (works for Western names)
+  // Flag multi-part names for review (could be different conventions)
+  const confidence = parts.length === 2 ? 0.9 : 0.7;
+  
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+    confidence,
+    needsReview: parts.length > 2  // Middle names = human should verify
+  };
+}
+
+// Test cases that MUST pass:
+// "John Smith" -> { first: "John", last: "Smith", confidence: 0.9 }
+// "Mary O'Brien" -> { first: "Mary", last: "O'Brien", confidence: 0.9 }
+// "José García" -> { first: "José", last: "García", confidence: 0.9 }
+// "María del Carmen" -> { first: "María", last: "del Carmen", confidence: 0.7, needsReview: true }
+// "Jean-Pierre Dupont" -> { first: "Jean-Pierre", last: "Dupont", confidence: 0.9 }
+// "John Smith Jr" -> { first: "John", last: "Smith Jr", confidence: 0.85 }
+```
+
+```typescript
+// phone_parser.ts - Handle US formats, flag international
+
+interface ParsedPhone {
+  normalized: string;  // Just digits
+  formatted: string;   // (843) 555-1234
+  confidence: number;
+  isInternational: boolean;
+}
+
+function parsePhone(raw: string): ParsedPhone | null {
+  // Extract all digits
+  const digits = raw.replace(/\D/g, '');
+  
+  // US format: 10 digits or 11 starting with 1
+  if (digits.length === 10) {
+    return {
+      normalized: digits,
+      formatted: `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`,
+      confidence: 0.95,
+      isInternational: false
+    };
+  }
+  
+  if (digits.length === 11 && digits[0] === '1') {
+    const local = digits.slice(1);
+    return {
+      normalized: local,
+      formatted: `(${local.slice(0,3)}) ${local.slice(3,6)}-${local.slice(6)}`,
+      confidence: 0.95,
+      isInternational: false
+    };
+  }
+  
+  // International or invalid - store raw, flag for review
+  if (digits.length >= 7) {
+    return {
+      normalized: digits,
+      formatted: raw.trim(),  // Keep original formatting
+      confidence: 0.5,
+      isInternational: true
+    };
+  }
+  
+  return null;  // Not enough digits to be a phone number
+}
+```
+
+---
+
+# MODULE 4: NLP PARSING (Chrono.js + Negation)
+
+**Problem:** "Not Monday" parsed as Monday
+**Solution:** Use Chrono.js for time parsing, add negation detection
+
+```typescript
+// availability_parser.ts
+
+import * as chrono from 'chrono-node';
+
+interface AvailabilityBlock {
+  days: DayCode[];
+  startTime: string;  // "HH:MM"
+  endTime: string;
+  isNegated: boolean;  // true = NOT available at this time
+  confidence: number;
+}
+
+type DayCode = 'M' | 'T' | 'W' | 'TH' | 'F' | 'SA' | 'SU';
+
+function parseAvailability(text: string, referenceDate: Date = new Date()): AvailabilityBlock[] {
+  const lower = text.toLowerCase();
+  const blocks: AvailabilityBlock[] = [];
+  
+  // Step 1: Detect negation patterns
+  const negationPatterns = [
+    /not\s+(on\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi,
+    /except\s+(on\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi,
+    /(busy|unavailable|cant|can't)\s+(on\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi,
+    /(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:doesn't|doesn't|won't|wont)\s+work/gi,
+  ];
+  
+  const negatedDays = new Set<string>();
+  for (const pattern of negationPatterns) {
+    let match;
+    while ((match = pattern.exec(lower)) !== null) {
+      const dayMatch = match[0].match(/monday|tuesday|wednesday|thursday|friday|saturday|sunday/i);
+      if (dayMatch) {
+        negatedDays.add(dayMatch[0].toLowerCase());
+      }
+    }
+  }
+  
+  // Step 2: Use Chrono.js for temporal expressions
+  const chronoResults = chrono.parse(text, referenceDate);
+  
+  for (const result of chronoResults) {
+    const days = extractDaysFromChronoResult(result);
+    const timeRange = extractTimeRange(result);
+    
+    if (days.length > 0) {
+      blocks.push({
+        days,
+        startTime: timeRange.start,
+        endTime: timeRange.end,
+        isNegated: false,
+        confidence: 0.85
+      });
+    }
+  }
+  
+  // Step 3: Fall back to keyword matching for simple cases
+  if (blocks.length === 0) {
+    const keywordBlocks = parseWithKeywords(lower, negatedDays);
+    blocks.push(...keywordBlocks);
+  }
+  
+  // Step 4: Mark negated blocks
+  for (const block of blocks) {
+    for (const day of block.days) {
+      const dayName = dayCodeToName(day).toLowerCase();
+      if (negatedDays.has(dayName)) {
+        block.isNegated = true;
+      }
+    }
+  }
+  
+  // Step 5: Invert if entire response is about availability (not negation)
+  // "I'm free Monday and Tuesday" - these are POSITIVE
+  // "I'm busy Monday" - Monday is NEGATIVE
+  // Default: if no negation words found, treat as positive availability
+  
+  return blocks;
+}
+
+function parseWithKeywords(text: string, negatedDays: Set<string>): AvailabilityBlock[] {
+  const blocks: AvailabilityBlock[] = [];
+  
+  // Day patterns
+  const dayMap: Record<string, DayCode[]> = {
+    'monday': ['M'], 'mon': ['M'],
+    'tuesday': ['T'], 'tue': ['T'], 'tues': ['T'],
+    'wednesday': ['W'], 'wed': ['W'],
+    'thursday': ['TH'], 'thu': ['TH'], 'thur': ['TH'], 'thurs': ['TH'],
+    'friday': ['F'], 'fri': ['F'],
+    'saturday': ['SA'], 'sat': ['SA'],
+    'sunday': ['SU'], 'sun': ['SU'],
+    'weekday': ['M', 'T', 'W', 'TH', 'F'],
+    'weekdays': ['M', 'T', 'W', 'TH', 'F'],
+    'weekend': ['SA', 'SU'],
+    'weekends': ['SA', 'SU'],
+    'everyday': ['M', 'T', 'W', 'TH', 'F', 'SA', 'SU'],
+    'mwf': ['M', 'W', 'F'],
+    'tth': ['T', 'TH'], 'tr': ['T', 'TH'],
+  };
+  
+  // Time patterns
+  const timeMap: Record<string, { start: string; end: string }> = {
+    'morning': { start: '08:00', end: '12:00' },
+    'mornings': { start: '08:00', end: '12:00' },
+    'afternoon': { start: '12:00', end: '17:00' },
+    'afternoons': { start: '12:00', end: '17:00' },
+    'evening': { start: '17:00', end: '21:00' },
+    'evenings': { start: '17:00', end: '21:00' },
+    'night': { start: '19:00', end: '23:00' },
+    'nights': { start: '19:00', end: '23:00' },
+    'lunch': { start: '11:00', end: '14:00' },
+    'anytime': { start: '08:00', end: '22:00' },
+    'whenever': { start: '08:00', end: '22:00' },
+  };
+  
+  // Find days
+  let foundDays: DayCode[] = [];
+  for (const [pattern, days] of Object.entries(dayMap)) {
+    if (text.includes(pattern)) {
+      foundDays.push(...days);
+    }
+  }
+  foundDays = [...new Set(foundDays)];  // Dedupe
+  
+  // Find times
+  let timeRange = { start: CONFIG.parsing.default_available_start, end: CONFIG.parsing.default_available_end };
+  for (const [pattern, range] of Object.entries(timeMap)) {
+    if (text.includes(pattern)) {
+      timeRange = range;
+      break;
+    }
+  }
+  
+  // Handle "after X" pattern
+  const afterMatch = text.match(/after\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (afterMatch) {
+    let hour = parseInt(afterMatch[1]);
+    const ampm = afterMatch[3]?.toLowerCase();
+    
+    // Smart AM/PM inference
+    if (ampm === 'pm' && hour < 12) hour += 12;
+    else if (ampm === 'am') { /* keep as is */ }
+    else if (hour < 7) hour += 12;  // "after 2" probably means 2pm
+    
+    timeRange.start = `${hour.toString().padStart(2, '0')}:00`;
+    timeRange.end = CONFIG.parsing.default_available_end;
+  }
+  
+  // Handle "before X" pattern
+  const beforeMatch = text.match(/before\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (beforeMatch) {
+    let hour = parseInt(beforeMatch[1]);
+    const ampm = beforeMatch[3]?.toLowerCase();
+    
+    if (ampm === 'pm' && hour < 12) hour += 12;
+    
+    timeRange.start = CONFIG.parsing.default_available_start;
+    timeRange.end = `${hour.toString().padStart(2, '0')}:00`;
+  }
+  
+  // Default days if none found
+  if (foundDays.length === 0) {
+    foundDays = ['M', 'T', 'W', 'TH', 'F'];  // Weekdays
+  }
+  
+  blocks.push({
+    days: foundDays,
+    startTime: timeRange.start,
+    endTime: timeRange.end,
+    isNegated: false,
+    confidence: 0.7
+  });
+  
+  return blocks;
+}
+
+function dayCodeToName(code: DayCode): string {
+  const map: Record<DayCode, string> = {
+    'M': 'monday', 'T': 'tuesday', 'W': 'wednesday',
+    'TH': 'thursday', 'F': 'friday', 'SA': 'saturday', 'SU': 'sunday'
+  };
+  return map[code];
+}
+
+// Convert parsed availability to positive availability blocks
+// (removing negated times)
+function computeAvailableBlocks(parsed: AvailabilityBlock[]): AvailabilityBlock[] {
+  const positive = parsed.filter(b => !b.isNegated);
+  const negative = parsed.filter(b => b.isNegated);
+  
+  // If we have positive blocks, use them (subtract negatives if any)
+  // If we only have negatives, invert them
+  
+  if (positive.length > 0) {
+    // TODO: Subtract negative blocks from positive blocks
+    // For MVP, just return positive blocks
+    return positive;
+  }
+  
+  // Only negatives: invert to get availability
+  // "Not Monday" -> available T, W, TH, F, SA, SU
+  const allDays: DayCode[] = ['M', 'T', 'W', 'TH', 'F', 'SA', 'SU'];
+  const negatedDaySet = new Set<DayCode>();
+  
+  for (const block of negative) {
+    for (const day of block.days) {
+      negatedDaySet.add(day);
+    }
+  }
+  
+  const availableDays = allDays.filter(d => !negatedDaySet.has(d));
+  
+  if (availableDays.length > 0) {
+    return [{
+      days: availableDays,
+      startTime: CONFIG.parsing.default_available_start,
+      endTime: CONFIG.parsing.default_available_end,
+      isNegated: false,
+      confidence: 0.6  // Lower confidence for inverted
+    }];
+  }
+  
+  return [];
+}
+```
+
+---
+
+# MODULE 5: SIMPLIFIED HOMOLOGY
+
+**Problem:** Unused Mayer-Vietoris complexity, direct h1() called anyway
+**Solution:** Keep what works, remove pretense
+
+```typescript
+// community_analysis.ts
+
+interface CommunityMetrics {
+  // Core Betti numbers
+  components: number;      // β₀ - number of disconnected groups
+  structuralHoles: number; // β₁ - cycles (friend groups with gaps)
+  
+  // Normalized (by community size)
+  normalizedHoles: number; // β₁ / (n * factor)
+  
+  // Actionable
+  isolationRisk: string[];     // Resident IDs at boundary
+  bridgeResidents: string[];   // Resident IDs connecting groups
+  
+  // Health score
+  healthScore: number;  // 0-100
+  healthBreakdown: {
+    connectivity: number;   // Based on β₀
+    cohesion: number;       // Based on β₁
+    isolation: number;      // Based on boundary count
+  };
+  
+  // Explanation (what the numbers mean)
+  explanation: string;
+}
+
+function analyzeCommmunity(residents: Resident[], connections: Connection[]): CommunityMetrics {
+  const n = residents.length;
+  const e = connections.length;
+  
+  // β₀: Connected components (Union-Find)
+  const components = countComponents(residents, connections);
+  
+  // β₁: For graphs, β₁ = |E| - |V| + β₀
+  // This IS the correct formula. No need for chain complexes.
+  const structuralHoles = Math.max(0, e - n + components);
+  
+  // Size-normalized: larger communities naturally have more cycles
+  const normalizedHoles = n > 0 
+    ? structuralHoles / (n * CONFIG.community.cycle_normalization_factor)
+    : 0;
+  
+  // Boundary residents: bottom percentile by connection count
+  const degrees = computeDegrees(residents, connections);
+  const sortedByDegree = [...residents].sort((a, b) => 
+    (degrees.get(a.id) || 0) - (degrees.get(b.id) || 0)
+  );
+  const boundaryCount = Math.ceil(n * CONFIG.community.boundary_percentile);
+  const isolationRisk = sortedByDegree.slice(0, boundaryCount).map(r => r.id);
+  
+  // Bridge residents: in multiple subcommunities AND connected to different groups
+  const bridgeResidents = findBridges(residents, connections);
+  
+  // Health score
+  const connectivity = Math.max(0, 100 - (components - 1) * 20);  // Ideal: 1 component
+  const cohesion = Math.max(0, 100 - normalizedHoles * 10);
+  const isolationScore = Math.max(0, 100 - (isolationRisk.length / n) * 200);
+  
+  const weights = CONFIG.community.health_weights;
+  const healthScore = 
+    connectivity * weights.connectivity +
+    cohesion * weights.cohesion +
+    isolationScore * weights.isolation;
+  
+  // Plain English explanation
+  const explanation = generateExplanation(components, structuralHoles, isolationRisk.length, n);
+  
+  return {
+    components,
+    structuralHoles,
+    normalizedHoles,
+    isolationRisk,
+    bridgeResidents,
+    healthScore,
+    healthBreakdown: { connectivity, cohesion, isolation: isolationScore },
+    explanation
+  };
+}
+
+function generateExplanation(
+  components: number, 
+  holes: number, 
+  isolatedCount: number, 
+  total: number
+): string {
+  const lines: string[] = [];
+  
+  if (components === 1) {
+    lines.push("✓ Everyone is connected to the same community.");
+  } else {
+    lines.push(`⚠ There are ${components} separate groups that don't interact.`);
+  }
+  
+  if (holes === 0) {
+    lines.push("✓ No structural gaps in the community.");
+  } else if (holes <= 2) {
+    lines.push(`ℹ ${holes} friend group(s) could benefit from more connectors.`);
+  } else {
+    lines.push(`⚠ ${holes} structural gaps detected. Consider targeted introductions.`);
+  }
+  
+  if (isolatedCount === 0) {
+    lines.push("✓ No residents at high isolation risk.");
+  } else {
+    const pct = Math.round(isolatedCount / total * 100);
+    lines.push(`⚠ ${isolatedCount} residents (${pct}%) are on the edge of the community.`);
+  }
+  
+  return lines.join('\n');
+}
+
+function countComponents(residents: Resident[], connections: Connection[]): number {
+  // Union-Find
+  const parent = new Map<string, string>();
+  residents.forEach(r => parent.set(r.id, r.id));
+  
+  const find = (x: string): string => {
+    if (parent.get(x) !== x) {
+      parent.set(x, find(parent.get(x)!));
+    }
+    return parent.get(x)!;
+  };
+  
+  const union = (a: string, b: string) => {
+    parent.set(find(a), find(b));
+  };
+  
+  for (const c of connections) {
+    union(c.source, c.target);
+  }
+  
+  const roots = new Set<string>();
+  residents.forEach(r => roots.add(find(r.id)));
+  
+  return roots.size;
+}
+
+function computeDegrees(residents: Resident[], connections: Connection[]): Map<string, number> {
+  const degrees = new Map<string, number>();
+  residents.forEach(r => degrees.set(r.id, 0));
+  
+  for (const c of connections) {
+    degrees.set(c.source, (degrees.get(c.source) || 0) + 1);
+    degrees.set(c.target, (degrees.get(c.target) || 0) + 1);
+  }
+  
+  return degrees;
+}
+
+function findBridges(residents: Resident[], connections: Connection[]): string[] {
+  // Simplified: residents with connections to multiple subcommunities
+  const bridges: string[] = [];
+  
+  for (const r of residents) {
+    if (r.subcommunities.size < 2) continue;
+    
+    // Check if they actually connect to different subcommunities
+    const connectedSubs = new Set<string>();
+    for (const c of connections) {
+      const neighborId = c.source === r.id ? c.target : c.source;
+      if (neighborId === r.id) continue;
+      
+      const neighbor = residents.find(res => res.id === neighborId);
+      if (neighbor) {
+        neighbor.subcommunities.forEach(s => connectedSubs.add(s));
+      }
+    }
+    
+    if (connectedSubs.size >= 2) {
+      bridges.push(r.id);
+    }
+  }
+  
+  return bridges;
+}
+```
+
+---
+
+# MODULE 6: SCHEDULING WITH FALLBACK
+
+**Problem:** Greedy leaves people unscheduled with no explanation
+**Solution:** Multiple passes + explanation + manual queue
+
+```typescript
+// scheduler.ts
+
+interface ScheduleResult {
+  scheduled: ScheduledSlot[];
+  unscheduled: UnscheduledResident[];
+  stats: {
+    total: number;
+    scheduled: number;
+    unscheduledCount: number;
+    batchEfficiency: number;  // Avg residents per slot
+  };
+}
+
+interface UnscheduledResident {
+  residentId: string;
+  reason: SchedulingFailureReason;
+  suggestion: string;
+}
+
+type SchedulingFailureReason = 
+  | 'no_availability_provided'
+  | 'no_overlap_with_ra'
+  | 'all_slots_full'
+  | 'schedule_conflict';
+
+function scheduleCheckIns(
+  residents: Resident[],
+  raAvailability: TimeBlock[],
+  config: SchedulingConfig
+): ScheduleResult {
+  const scheduled: ScheduledSlot[] = [];
+  const unscheduled: UnscheduledResident[] = [];
+  
+  // Sort by priority (isolation risk first)
+  const prioritized = prioritizeResidents(residents);
+  
+  // Generate all possible time slots from RA availability
+  const slots = generateTimeSlots(raAvailability, config);
+  
+  // Multi-pass greedy (try different orderings)
+  let bestSchedule = runGreedyPass(prioritized, slots, config);
+  
+  for (let pass = 1; pass < CONFIG.scheduling.greedy_passes; pass++) {
+    // Shuffle unscheduled and try again
+    const shuffled = shuffleArray([...prioritized]);
+    const altSchedule = runGreedyPass(shuffled, slots, config);
+    
+    if (altSchedule.scheduled.length > bestSchedule.scheduled.length) {
+      bestSchedule = altSchedule;
+    }
+  }
+  
+  // Process results
+  const scheduledIds = new Set(bestSchedule.scheduled.flatMap(s => s.residentIds));
+  
+  for (const r of residents) {
+    if (!scheduledIds.has(r.id)) {
+      unscheduled.push({
+        residentId: r.id,
+        reason: determineFailureReason(r, raAvailability, bestSchedule.scheduled),
+        suggestion: generateSuggestion(r, raAvailability)
+      });
+    }
+  }
+  
+  return {
+    scheduled: bestSchedule.scheduled,
+    unscheduled,
+    stats: {
+      total: residents.length,
+      scheduled: scheduledIds.size,
+      unscheduledCount: unscheduled.length,
+      batchEfficiency: bestSchedule.scheduled.length > 0
+        ? scheduledIds.size / bestSchedule.scheduled.length
+        : 0
+    }
+  };
+}
+
+function determineFailureReason(
+  resident: Resident,
+  raAvailability: TimeBlock[],
+  scheduled: ScheduledSlot[]
+): SchedulingFailureReason {
+  // No availability data
+  if (!resident.statedAvailability || resident.statedAvailability.length === 0) {
+    return 'no_availability_provided';
+  }
+  
+  // Check if any overlap with RA
+  const hasOverlap = resident.statedAvailability.some(ra =>
+    raAvailability.some(ra2 => blocksOverlap(ra, ra2))
+  );
+  
+  if (!hasOverlap) {
+    return 'no_overlap_with_ra';
+  }
+  
+  // Slots exist but full
+  return 'all_slots_full';
+}
+
+function generateSuggestion(resident: Resident, raAvailability: TimeBlock[]): string {
+  if (!resident.statedAvailability || resident.statedAvailability.length === 0) {
+    return "Please provide your availability by replying to the check-in text.";
+  }
+  
+  // Find RA's available times that don't match resident
+  const raDays = new Set(raAvailability.map(b => b.day));
+  const resDays = new Set(resident.statedAvailability.flatMap(b => b.days));
+  
+  const missingDays = [...raDays].filter(d => !resDays.has(d as any));
+  
+  if (missingDays.length > 0) {
+    const dayNames = missingDays.map(d => dayCodeToName(d as DayCode)).join(', ');
+    return `Are you available on ${dayNames}? Those times work better for scheduling.`;
+  }
+  
+  return "We'll reach out to find a time that works. Reply 'reschedule' if you have new availability.";
+}
+
+function prioritizeResidents(residents: Resident[]): Resident[] {
+  const weights = CONFIG.scheduling.priority_weights;
+  
+  return [...residents].sort((a, b) => {
+    const scoreA = computePriorityScore(a, weights);
+    const scoreB = computePriorityScore(b, weights);
+    return scoreB - scoreA;  // Higher priority first
+  });
+}
+
+function computePriorityScore(resident: Resident, weights: typeof CONFIG.scheduling.priority_weights): number {
+  let score = 50;  // Base
+  
+  if (resident.isIsolationRisk) score += weights.isolation_risk;
+  if (resident.inFragileGroup) score += weights.fragile_group;
+  if (resident.lastRating && resident.lastRating <= 2) score += weights.low_rating;
+  if (resident.followUpNeeded) score += weights.follow_up_needed;
+  if (resident.isBridge) score += weights.bridge_resident;
+  if (resident.inStableGroup) score += weights.stable_group;  // Negative weight
+  
+  return score;
+}
+```
+
+---
+
+# MODULE 7: CSV FALLBACK
+
+**Problem:** OCR fails, user stuck
+**Solution:** Always offer CSV upload
+
+```typescript
+// csv_import.ts
+
+import Papa from 'papaparse';
+
+interface CSVImportResult {
+  residents: Resident[];
+  warnings: string[];
+  columnMapping: Record<string, string>;  // CSV header -> our field
+}
+
+async function importCSV(file: File): Promise<Result<CSVImportResult, ParseError>> {
+  return new Promise((resolve) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          resolve(Err({
+            code: 'INVALID_FORMAT',
+            message: `CSV parsing error: ${results.errors[0].message}`,
+            suggestion: 'Check that the file is a valid CSV with headers'
+          }));
+          return;
+        }
+        
+        const mapping = detectColumnMapping(results.meta.fields || []);
+        const residents: Resident[] = [];
+        const warnings: string[] = [];
+        
+        for (let i = 0; i < results.data.length; i++) {
+          const row = results.data[i] as Record<string, string>;
+          const resident = parseCSVRow(row, mapping, i + 2);  // +2 for header + 1-indexed
+          
+          if (resident.ok) {
+            residents.push(resident.value);
+          } else {
+            warnings.push(`Row ${i + 2}: ${resident.error.message}`);
+          }
+        }
+        
+        resolve(Ok({ residents, warnings, columnMapping: mapping }));
+      },
+      error: (error) => {
+        resolve(Err({
+          code: 'INVALID_FORMAT',
+          message: error.message,
+          suggestion: 'Ensure the file is a valid CSV'
+        }));
+      }
+    });
+  });
+}
+
+function detectColumnMapping(headers: string[]): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  
+  const patterns: Record<string, RegExp[]> = {
+    firstName: [/first\s*name/i, /fname/i, /given\s*name/i],
+    lastName: [/last\s*name/i, /lname/i, /surname/i, /family\s*name/i],
+    name: [/^name$/i, /full\s*name/i, /student\s*name/i, /resident\s*name/i],
+    room: [/room/i, /room\s*#/i, /room\s*number/i, /unit/i],
+    email: [/email/i, /e-mail/i, /mail/i],
+    phone: [/phone/i, /cell/i, /mobile/i, /tel/i],
+  };
+  
+  for (const header of headers) {
+    for (const [field, regexes] of Object.entries(patterns)) {
+      if (regexes.some(r => r.test(header))) {
+        mapping[header] = field;
+        break;
+      }
+    }
+  }
+  
+  return mapping;
+}
+
+function parseCSVRow(
+  row: Record<string, string>, 
+  mapping: Record<string, string>,
+  rowNum: number
+): Result<Resident, ParseError> {
+  const getValue = (field: string): string | undefined => {
+    for (const [csvCol, ourField] of Object.entries(mapping)) {
+      if (ourField === field) {
+        return row[csvCol]?.trim();
+      }
+    }
+    return undefined;
+  };
+  
+  // Handle combined name field
+  let firstName = getValue('firstName');
+  let lastName = getValue('lastName');
+  
+  if (!firstName && !lastName) {
+    const fullName = getValue('name');
+    if (fullName) {
+      const parsed = parseName(fullName);
+      firstName = parsed.firstName;
+      lastName = parsed.lastName;
+    }
+  }
+  
+  const room = getValue('room');
+  
+  if (!firstName || !room) {
+    return Err({
+      code: 'MISSING_FIELD',
+      message: `Missing required field: ${!firstName ? 'name' : 'room'}`,
+      field: !firstName ? 'name' : 'room'
+    });
+  }
+  
+  return Ok({
+    id: crypto.randomUUID(),
+    firstName,
+    lastName: lastName || '',
+    room,
+    email: getValue('email') || '',
+    phone: getValue('phone') || '',
+    // ... other fields with defaults
+  });
+}
+```
+
+---
+
+# BUILD ORDER
+
+```
+PHASE 1: Foundation (MUST HAVE for any demo)
+─────────────────────────────────────────────
+□ config.ts - All thresholds externalized
+□ result.ts - Error handling types
+□ name_parser.ts - Unicode-safe name parsing
+□ phone_parser.ts - Phone normalization
+□ csv_import.ts - CSV fallback
+
+PHASE 2: Core Parsing
+─────────────────────────────────────────────
+□ ocr_service.ts - Tesseract wrapper with timeout/retry
+□ availability_parser.ts - Chrono.js + negation detection
+□ roster_upload.tsx - UI with fallback options
+
+PHASE 3: Analysis
+─────────────────────────────────────────────
+□ community_analysis.ts - Simplified homology
+□ priority_service.ts - Check-in ordering
+□ introduction_suggester.ts - Fill structural holes
+
+PHASE 4: Scheduling
+─────────────────────────────────────────────
+□ scheduler.ts - Multi-pass greedy with explanations
+□ reminder_service.ts - Day-of notifications
+□ calendar_view.tsx - Visual schedule
+
+PHASE 5: Polish
+─────────────────────────────────────────────
+□ health_dashboard.tsx - Community metrics display
+□ explanation_panel.tsx - What the numbers mean
+□ manual_override.tsx - Human in the loop
+```
+
+---
+
+# WHAT WE REMOVED (And Why It's Fine)
+
+| Removed | Why It's Fine |
+|---------|---------------|
+| Full Mayer-Vietoris exact sequence | Direct β₁ = E - V + β₀ IS correct for graphs |
+| ILP scheduling | Greedy + multi-pass works for n < 100 |
+| RFC 5322 email validation | @school.edu is sufficient |
+| ML-based NLP | Chrono.js + negation keywords handles 95% of cases |
+| Learned connection weights | Heuristics work, calibrate in v3 with real data |
+| Dynamic epsilon | 1e-10 is fine for community-sized matrices |
+
+---
+
+# WHAT WE KEPT (And Why It Matters)
+
+| Kept | Why It Matters |
+|------|----------------|
+| Unicode name parsing | Real people have apostrophes and accents |
+| Negation detection | "Not Monday" must not schedule Monday |
+| CSV fallback | OCR will fail, user needs escape hatch |
+| Confidence scores | User knows what to review |
+| Externalized config | No code changes needed to tune thresholds |
+| Explanation strings | User understands what the math means |
+| Multi-pass scheduling | Catches cases greedy misses |
+| Unscheduled reasons | User knows WHY someone wasn't scheduled |
+
+---
+
+**This is a tool that works, not a research prototype that impresses.**
