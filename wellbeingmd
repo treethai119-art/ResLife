@@ -161,14 +161,17 @@ Sleep quality predicts academic performance and mental health.
 2. **Positive framing where possible** - "How connected do you feel?" not "How isolated?"
 3. **Vary response formats** - prevents straight-lining
 4. **Order effects** - sensitive items in middle, not first
-5. **Total time < 2 minutes** - students will actually complete it
+5. **Complete validated scales** - ensures psychometric validity (tradeoff: 2-3 min vs. <2 min)
+6. **Brief enough for compliance** - research shows 2-3 minutes still achieves 80%+ completion
 
-## Proposed CheckIn Questionnaire (12 items)
+## Proposed CheckIn Questionnaire (17 items)
+
+**Note:** Complete validated scales ensure psychometric validity. Estimated completion time ~2-3 minutes.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Quick Check-In with [RA Name]                                              │
-│  Takes about 90 seconds 📱                                                  │
+│  Takes about 2-3 minutes 📱                                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 SECTION A: HOW'S IT GOING? (Wellbeing)
@@ -187,43 +190,64 @@ SECTION A: HOW'S IT GOING? (Wellbeing)
    ○ Not at all  ○ Several days  ○ More than half the days  ○ Nearly every day
    [PHQ-2 Item 2]
 
-4. Over the past 2 weeks, how often have you felt nervous, anxious, 
+4. Over the past 2 weeks, how often have you felt nervous, anxious,
    or on edge?
    ○ Not at all  ○ Several days  ○ More than half the days  ○ Nearly every day
    [GAD-2 Item 1]
 
-5. How would you rate your sleep quality this past week?
+5. Over the past 2 weeks, how often have you been unable to stop or
+   control worrying?
+   ○ Not at all  ○ Several days  ○ More than half the days  ○ Nearly every day
+   [GAD-2 Item 2]
+
+6. How would you rate your sleep quality this past week?
    😴 Poor  1   2   3   4   5  Great 💤
+
+7. All things considered, how satisfied are you with your life as a whole?
+   0   1   2   3   4   5   6   7   8   9   10
+   [Single-item life satisfaction - validated]
 
 SECTION B: CONNECTIONS (Social/Community)
 ──────────────────────────────────────────────────────────────────────────────
 
-6. How often do you feel like you lack companionship?
+8. How often do you feel like you lack companionship?
    ○ Hardly ever  ○ Some of the time  ○ Often
    [UCLA-3 Item 1]
 
-7. How often do you feel left out?
+9. How often do you feel left out?
    ○ Hardly ever  ○ Some of the time  ○ Often
    [UCLA-3 Item 2]
 
-8. I feel like I fit in with other students on my floor.
-   Strongly disagree  1   2   3   4   5  Strongly agree
-   [Belonging Scale]
+10. How often do you feel isolated from others?
+    ○ Hardly ever  ○ Some of the time  ○ Often
+    [UCLA-3 Item 3]
+
+11. I feel like I belong at this university.
+    Strongly disagree  1   2   3   4   5  Strongly agree
+    [Belonging Scale Item 1]
+
+12. I feel like I fit in with other students on my floor.
+    Strongly disagree  1   2   3   4   5  Strongly agree
+    [Belonging Scale Item 2]
+
+13. I have found a group of friends I feel comfortable with.
+    Strongly disagree  1   2   3   4   5  Strongly agree
+    [Belonging Scale Item 3]
 
 SECTION C: WHAT'S ON YOUR PLATE? (Stressors/Resources)
 ──────────────────────────────────────────────────────────────────────────────
 
-9. What's taking most of your energy right now? (select all that apply)
-   □ Classes/academics
-   □ Work/job
-   □ Relationships
-   □ Family stuff
-   □ Health
-   □ Money/finances
-   □ Future plans/career
-   □ Nothing major - things are good!
+14. What's taking most of your energy right now? (select all that apply)
+    □ Classes/academics
+    □ Work/job
+    □ Relationships
+    □ Family stuff
+    □ Health
+    □ Money/finances
+    □ Future plans/career
+    □ Nothing major - things are good!
 
-10. Would any of these be helpful to connect with? (select all that apply)
+15. Would any of these be helpful to connect with? (select all that apply)
     □ Study groups for my classes
     □ Campus counseling services
     □ Academic advising
@@ -235,12 +259,12 @@ SECTION C: WHAT'S ON YOUR PLATE? (Stressors/Resources)
 SECTION D: STAY CONNECTED (Engagement)
 ──────────────────────────────────────────────────────────────────────────────
 
-11. Would you like to meet up with [RA Name] to chat?
+16. Would you like to meet up with [RA Name] to chat?
     ○ Yes, let's schedule something
     ○ Maybe later this semester
     ○ I'm good - this check-in is enough
 
-12. Anything else on your mind? (optional)
+17. Anything else on your mind? (optional)
     ____________________________________________
     ____________________________________________
 
@@ -252,80 +276,102 @@ SECTION D: STAY CONNECTED (Engagement)
 # SCORING ALGORITHM
 
 ```typescript
+// Question mapping for clarity:
+// q1  = Week rating (1-5)
+// q2  = PHQ-2 Item 1 (0-3)
+// q3  = PHQ-2 Item 2 (0-3)
+// q4  = GAD-2 Item 1 (0-3)
+// q5  = GAD-2 Item 2 (0-3)
+// q6  = Sleep quality (1-5)
+// q7  = Life satisfaction (0-10)
+// q8  = UCLA-3 Item 1 (1-3)
+// q9  = UCLA-3 Item 2 (1-3)
+// q10 = UCLA-3 Item 3 (1-3)
+// q11 = Belonging Item 1 (1-5)
+// q12 = Belonging Item 2 (1-5)
+// q13 = Belonging Item 3 (1-5)
+// q14 = Stressors (multi-select)
+// q15 = Resources (multi-select)
+// q16 = Follow-up preference
+// q17 = Free text
+
 interface CheckInScores {
-  // Validated subscales
-  phq2: number;           // 0-6 (depression)
-  gad2: number;           // 0-6 (anxiety, item 4 omitted for brevity - can add)
-  loneliness: number;     // 3-9 (UCLA-3)
-  belonging: number;      // 1-5
-  
+  // Validated subscales (complete)
+  phq2: number;           // 0-6 (depression) - full PHQ-2
+  gad2: number;           // 0-6 (anxiety) - full GAD-2
+  loneliness: number;     // 3-9 (UCLA-3) - all 3 items
+  belonging: number;      // 1-5 (mean of 3 items)
+
   // Single items
   weekRating: number;     // 1-5
   sleepQuality: number;   // 1-5
-  
+  lifeSatisfaction: number; // 0-10
+
   // Composite
   wellbeingIndex: number; // 0-100 composite score
-  
+
   // Flags
   flags: {
     depressionScreen: boolean;    // PHQ-2 ≥ 3
-    anxietyScreen: boolean;       // GAD-2 ≥ 3 (if included)
+    anxietyScreen: boolean;       // GAD-2 ≥ 3
     highLoneliness: boolean;      // UCLA-3 ≥ 7
     lowBelonging: boolean;        // Belonging < 2.5
     poorSleep: boolean;           // Sleep ≤ 2
-    needsFollowUp: boolean;       // Any flag true
+    lowLifeSatisfaction: boolean; // Life satisfaction < 5
+    needsFollowUp: boolean;       // Any clinical flag true
     urgentConcern: boolean;       // PHQ-2 ≥ 5 OR multiple flags
   };
-  
+
   // Resource matching
   suggestedResources: string[];
 }
 
 function scoreCheckIn(responses: CheckInResponses): CheckInScores {
   // PHQ-2 scoring (0=Not at all, 1=Several days, 2=More than half, 3=Nearly every day)
-  const phq2 = responses.q2 + responses.q3;
-  
-  // GAD-2 (if we include item 4, otherwise just item 4 alone)
-  const gad2 = responses.q4;  // Single item version, or add second item
-  
+  const phq2 = responses.q2 + responses.q3;  // Full PHQ-2: items 1+2
+
+  // GAD-2 scoring (same 0-3 scale)
+  const gad2 = responses.q4 + responses.q5;  // Full GAD-2: items 1+2
+
   // UCLA-3 (1=Hardly ever, 2=Some of the time, 3=Often)
-  const loneliness = responses.q6 + responses.q7 + (responses.q8_inverted || 0);
-  // Note: q8 is belonging, need separate loneliness item or invert
-  
-  // Belonging (1-5 scale)
-  const belonging = responses.q8;
-  
+  const loneliness = responses.q8 + responses.q9 + responses.q10;  // All 3 UCLA items
+
+  // Belonging (mean of 3 items, 1-5 scale each)
+  const belonging = (responses.q11 + responses.q12 + responses.q13) / 3;
+
   // Single items
   const weekRating = responses.q1;
-  const sleepQuality = responses.q5;
-  
+  const sleepQuality = responses.q6;
+  const lifeSatisfaction = responses.q7;
+
   // Flags based on validated thresholds
-  const flags = {
-    depressionScreen: phq2 >= 3,
-    anxietyScreen: gad2 >= 2,  // Lower threshold for single item
-    highLoneliness: loneliness >= 7,
-    lowBelonging: belonging < 2.5,
-    poorSleep: sleepQuality <= 2,
-    needsFollowUp: false,
-    urgentConcern: false
+  const clinicalFlags = {
+    depressionScreen: phq2 >= 3,      // Standard PHQ-2 threshold
+    anxietyScreen: gad2 >= 3,         // Standard GAD-2 threshold
+    highLoneliness: loneliness >= 7,  // Upper tertile
+    lowBelonging: belonging < 2.5,    // Below midpoint
+    poorSleep: sleepQuality <= 2,     // Bottom 40%
+    lowLifeSatisfaction: lifeSatisfaction < 5  // Below neutral
   };
-  
-  flags.needsFollowUp = Object.values(flags).some(f => f === true);
-  flags.urgentConcern = phq2 >= 5 || 
-    (flags.depressionScreen && flags.highLoneliness) ||
-    (phq2 >= 3 && weekRating <= 2);
-  
+
+  const flags = {
+    ...clinicalFlags,
+    needsFollowUp: Object.values(clinicalFlags).some(f => f === true),
+    urgentConcern: phq2 >= 5 ||
+      (clinicalFlags.depressionScreen && clinicalFlags.highLoneliness) ||
+      (phq2 >= 3 && weekRating <= 2)
+  };
+
   // Composite wellbeing index (0-100)
-  // Weighted combination of all subscales, normalized
   const wellbeingIndex = computeWellbeingIndex({
-    phq2, gad2, loneliness, belonging, weekRating, sleepQuality
+    phq2, gad2, loneliness, belonging, weekRating, sleepQuality, lifeSatisfaction
   });
-  
-  // Resource matching based on q9 and q10
-  const suggestedResources = matchResources(responses.q9, responses.q10, flags);
-  
+
+  // Resource matching based on q14 and q15
+  const suggestedResources = matchResources(responses.q14, responses.q15, flags);
+
   return {
-    phq2, gad2, loneliness, belonging, weekRating, sleepQuality,
+    phq2, gad2, loneliness, belonging, weekRating, sleepQuality, lifeSatisfaction,
     wellbeingIndex, flags, suggestedResources
   };
 }
@@ -337,32 +383,39 @@ function computeWellbeingIndex(scores: {
   belonging: number;
   weekRating: number;
   sleepQuality: number;
+  lifeSatisfaction: number;
 }): number {
   // Normalize each to 0-100 scale (higher = better)
-  const depression = (1 - scores.phq2 / 6) * 100;      // Invert: lower PHQ = better
-  const anxiety = (1 - scores.gad2 / 3) * 100;         // Invert
-  const social = (1 - (scores.loneliness - 3) / 6) * 100;  // Invert
+  const depression = (1 - scores.phq2 / 6) * 100;           // Invert: lower PHQ = better
+  const anxiety = (1 - scores.gad2 / 6) * 100;              // Invert: lower GAD = better
+  const social = (1 - (scores.loneliness - 3) / 6) * 100;   // Invert: lower loneliness = better
   const belong = ((scores.belonging - 1) / 4) * 100;
   const mood = ((scores.weekRating - 1) / 4) * 100;
   const sleep = ((scores.sleepQuality - 1) / 4) * 100;
-  
-  // Weighted average (weights based on predictive validity for outcomes)
+  const satisfaction = (scores.lifeSatisfaction / 10) * 100;
+
+  // Weighted average
+  // CALIBRATION NOTE: These weights are initial estimates based on literature.
+  // Should be empirically validated using regression on outcomes (GPA, retention)
+  // in Study 1 (Validation Study) and adjusted accordingly.
   const weights = {
-    depression: 0.25,   // Strong predictor of outcomes
-    anxiety: 0.15,
-    social: 0.20,       // Key for residential life
-    belong: 0.15,
-    mood: 0.15,
-    sleep: 0.10
+    depression: 0.20,   // Strong predictor of outcomes
+    anxiety: 0.15,      // Comorbid with depression
+    social: 0.20,       // Key for residential life mission
+    belong: 0.15,       // Retention predictor
+    mood: 0.10,         // Global wellbeing signal
+    sleep: 0.10,        // Academic performance predictor
+    satisfaction: 0.10  // Overall life evaluation
   };
-  
+
   return Math.round(
     depression * weights.depression +
     anxiety * weights.anxiety +
     social * weights.social +
     belong * weights.belong +
     mood * weights.mood +
-    sleep * weights.sleep
+    sleep * weights.sleep +
+    satisfaction * weights.satisfaction
   );
 }
 ```
@@ -419,42 +472,63 @@ function computeWellbeingIndex(scores: {
 ## Free-Text Keyword Detection
 
 ```typescript
-const CRISIS_KEYWORDS = [
-  // Direct
+// Separate arrays for clarity and proper handling
+const DIRECT_CRISIS_KEYWORDS = [
   'suicide', 'suicidal', 'kill myself', 'end my life', 'want to die',
-  'self-harm', 'cutting', 'hurt myself',
-  
-  // Indirect (flag for review, not auto-escalate)
-  'hopeless', 'worthless', 'no point', 'give up', 'can\'t go on',
+  'self-harm', 'cutting', 'hurt myself'
+];
+
+// Indirect keywords flag for REVIEW, not auto-escalation
+// These require human judgment - context matters
+const INDIRECT_CONCERN_KEYWORDS = [
+  'hopeless', 'worthless', 'no point', 'give up', "can't go on",
   'burden', 'better off without me'
 ];
 
-function scanFreeText(text: string): { 
-  hasCrisisKeyword: boolean; 
-  hasIndirectKeyword: boolean;
+interface FreeTextScanResult {
+  hasCrisisKeyword: boolean;      // Direct → immediate action
+  hasIndirectKeyword: boolean;    // Indirect → flag for RA review
   flaggedPhrases: string[];
-} {
+  recommendedAction: 'none' | 'review' | 'escalate';
+}
+
+function scanFreeText(text: string): FreeTextScanResult {
   const lower = text.toLowerCase();
   const flagged: string[] = [];
-  
+
   let hasCrisis = false;
   let hasIndirect = false;
-  
-  for (const keyword of CRISIS_KEYWORDS.slice(0, 9)) {  // Direct keywords
+
+  // Check direct crisis keywords → auto-escalate
+  for (const keyword of DIRECT_CRISIS_KEYWORDS) {
     if (lower.includes(keyword)) {
       hasCrisis = true;
       flagged.push(keyword);
     }
   }
-  
-  for (const keyword of CRISIS_KEYWORDS.slice(9)) {  // Indirect keywords
+
+  // Check indirect keywords → flag for review only
+  for (const keyword of INDIRECT_CONCERN_KEYWORDS) {
     if (lower.includes(keyword)) {
       hasIndirect = true;
       flagged.push(keyword);
     }
   }
-  
-  return { hasCrisisKeyword: hasCrisis, hasIndirectKeyword: hasIndirect, flaggedPhrases: flagged };
+
+  // Determine recommended action
+  let recommendedAction: 'none' | 'review' | 'escalate' = 'none';
+  if (hasCrisis) {
+    recommendedAction = 'escalate';  // Immediate RD/counseling notification
+  } else if (hasIndirect) {
+    recommendedAction = 'review';    // RA reviews, uses judgment
+  }
+
+  return {
+    hasCrisisKeyword: hasCrisis,
+    hasIndirectKeyword: hasIndirect,
+    flaggedPhrases: flagged,
+    recommendedAction
+  };
 }
 ```
 
@@ -723,3 +797,75 @@ function analyzeTrajectory(dataPoints: WellbeingDataPoint[]): WellbeingTrajector
 - Together: Structural position predicts individual outcomes → novel finding
 
 This isn't just a check-in tool anymore. It's a **research platform for residential student wellbeing**.
+
+---
+
+# CALIBRATION NOTES
+
+## Thresholds Requiring Empirical Validation
+
+The following thresholds are based on literature and clinical standards but should be validated with institutional data:
+
+| Threshold | Current Value | Source | Validation Plan |
+|-----------|---------------|--------|-----------------|
+| PHQ-2 positive screen | ≥ 3 | Kroenke et al. (2009) | Standard, validated |
+| GAD-2 positive screen | ≥ 3 | Kroenke et al. (2007) | Standard, validated |
+| UCLA-3 high loneliness | ≥ 7 | Upper tertile estimate | Validate in Study 1 |
+| Belonging low | < 2.5 | Below scale midpoint | Validate in Study 1 |
+| Life satisfaction concern | < 5 | Below neutral | Cheung & Lucas (2014) |
+| Sleep poor | ≤ 2 | Bottom 40% estimate | Validate in Study 1 |
+| Significant decline | > 15 pts | Clinical judgment | Validate with outcomes |
+| Chronic low | < 50 for 3+ | Clinical judgment | Validate with outcomes |
+
+## Composite Index Weights
+
+Current weights are **initial estimates** that should be empirically calibrated:
+
+```typescript
+// PILOT THESE WEIGHTS - Adjust based on predictive validity
+const weights = {
+  depression: 0.20,   // Literature: strong predictor
+  anxiety: 0.15,      // Literature: comorbid predictor
+  social: 0.20,       // Hypothesis: key for residential life
+  belong: 0.15,       // Literature: retention predictor
+  mood: 0.10,         // Face validity
+  sleep: 0.10,        // Literature: academic predictor
+  satisfaction: 0.10  // Face validity
+};
+```
+
+**Calibration Method (Study 1):**
+1. Collect CheckIn data at weeks 3, 8, 13
+2. Collect outcome data (GPA, retention, counseling utilization)
+3. Run multiple regression: outcomes ~ subscale scores
+4. Use standardized beta coefficients as new weights
+5. Cross-validate with holdout sample
+
+## Adapted Scales Requiring Pilot Validation
+
+| Scale | Adaptation | Validation Needed |
+|-------|------------|-------------------|
+| Belonging (3-item) | Subset of Hoffman et al. 26-item scale | Correlate with full scale in pilot (target r > 0.80) |
+
+## Recommended Pilot Design
+
+**Sample:** 100+ residents across 2+ floors
+**Duration:** One semester (3 administrations)
+**Measures:**
+- Full PHQ-9, GAD-7, UCLA-20, Hoffman Belonging Scale (at T1 and T3)
+- Brief CheckIn at T1, T2, T3
+- Academic outcomes (GPA, credits completed)
+- Retention to following semester
+
+**Analyses:**
+1. Concurrent validity: CheckIn subscales vs. full instruments
+2. Predictive validity: Composite index → outcomes
+3. Sensitivity/specificity of alert thresholds
+4. Weight calibration via regression
+
+**Success Criteria:**
+- PHQ-2 vs. PHQ-9: r ≥ 0.80
+- GAD-2 vs. GAD-7: r ≥ 0.80
+- UCLA-3 vs. UCLA-20: r ≥ 0.80
+- Belonging-3 vs. Hoffman full: r ≥ 0.70
+- Composite predicts outcomes: R² ≥ 0.15
