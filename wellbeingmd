@@ -1,5 +1,42 @@
-# CheckIn Psychometric Integration
-## Validated Instruments for Residential Student Wellbeing Assessment
+# CheckIn: A Research-Validated Wellbeing Platform for Residential Life
+## Psychometric Integration, Community Topology, and Scalable Implementation
+
+---
+
+# EXECUTIVE SUMMARY
+
+## The Problem
+Residential life staff conduct wellness check-ins with no standardization, generating anecdotal data that cannot detect early warning signs, track population trends, justify staffing decisions, or produce publishable research. Meanwhile, 40% of college students report significant mental health challenges, and residential settings are uniquely positioned—but underutilized—for early intervention.
+
+## The Solution
+**CheckIn** is a research-validated, RA-delivered wellbeing screening platform that:
+- Embeds validated psychometric instruments (PHQ-4, UCLA-3, Belonging Scale) into natural 2-3 minute check-ins
+- Applies algebraic topology to map community social structure and identify structurally isolated residents
+- Generates actionable alerts with tiered response protocols
+- Produces publishable research on the novel intersection of network topology and psychological wellbeing
+
+## Differentiation
+| Feature | CheckIn | Enterprise Tools (EAB, StarRez) | Self-Screeners (CCAPS) |
+|---------|---------|----------------------------------|------------------------|
+| **Cost** | $0 pilot / $1-2/resident scaled | $50,000+/year | Free but passive |
+| **RA Integration** | Native | None | None |
+| **Topology/Network** | Novel β₀/β₁ analysis | None | None |
+| **Research Potential** | 3+ publishable papers | Limited | Survey only |
+| **Compliance** | FERPA-compliant institutional tools | Vendor contracts | Variable |
+
+## ROI Summary
+| Metric | Conservative Estimate |
+|--------|----------------------|
+| Pilot cost | $0 (staff time only) |
+| Cost per student at scale | $0.50–$2.00/semester |
+| Value of 1 retained student | $15,000–$21,000 (tuition) |
+| Break-even | Retain 1 student per 10,000 check-ins |
+| Projected ROI | 5–10x if 5% of flagged students receive timely intervention |
+
+## The Ask
+**Phase 1:** Approve pilot with 1 RD + 10 RAs (150–200 residents) for one semester using zero-cost Google Forms/Sheets infrastructure. IRB exemption for program evaluation; retrospective approval for publication.
+
+**Phase 2:** Based on pilot data (completion rates, flag accuracy, intervention outcomes), evaluate scaling to institution-wide deployment with modest infrastructure investment.
 
 ---
 
@@ -872,6 +909,250 @@ const weights = {
 
 ---
 
+# ETHICAL, LEGAL, AND RISK MANAGEMENT FRAMEWORK
+
+## IRB and Research Approval Pathway
+
+### Pilot Phase (Program Evaluation)
+The initial pilot qualifies as **program evaluation** under most institutional policies, not human subjects research, because:
+- Primary purpose is improving residential life services, not generating generalizable knowledge
+- Data collected would be gathered as part of normal RA duties regardless
+- No experimental manipulation or randomization in pilot phase
+
+**Action:** Submit IRB exemption request prior to pilot launch. Placeholder: `IRB Protocol #[PENDING]`
+
+### Publication Phase (Research)
+For any aggregated analysis intended for publication:
+- Retrospective IRB approval will be sought for de-identified data analysis
+- Full IRB protocol if prospective research design (e.g., RCT for Paper 3)
+
+## FERPA Compliance and Data Governance
+
+### Data Classification
+| Data Type | Classification | Handling |
+|-----------|---------------|----------|
+| Individual responses | Education Record (FERPA) | Access limited to ResLife staff with legitimate educational interest |
+| Aggregated floor/building metrics | De-identified | May be shared for institutional research |
+| Published data | Fully anonymized | No individual identifiers, cell sizes ≥ 10 |
+
+### Data Storage and Access
+- **Platform:** Institutional Google Workspace (or equivalent approved platform)
+- **Access Control:** Sheet permissions limited to assigned RD, RAs for their residents only
+- **Audit Trail:** Google Sheets version history maintains access log
+- **Retention:** Individual data deleted at end of academic year unless consent obtained for longitudinal research
+- **No Third-Party Sharing:** Data never leaves institutional systems; no external vendors
+
+### Data Minimization
+- Only collect data necessary for wellbeing support and research objectives
+- No collection of sensitive categories beyond validated instruments
+- Optional questions clearly marked
+
+## Liability and Scope of Practice
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              IMPORTANT DISCLAIMER                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  CheckIn is a LOW-THRESHOLD SCREENING and OUTREACH AID for residential     │
+│  staff. It is NOT a diagnostic or clinical tool.                            │
+│                                                                             │
+│  • Does NOT replace licensed mental health professionals                    │
+│  • Does NOT substitute for crisis hotlines (988, campus crisis lines)       │
+│  • Does NOT override existing institutional crisis protocols                │
+│                                                                             │
+│  FALSE NEGATIVES AND POSITIVES ARE INHERENT in brief screening.             │
+│  All elevated flags trigger HUMAN REVIEW and REFERRAL per existing          │
+│  campus procedures.                                                         │
+│                                                                             │
+│  Institutions adopt at their discretion and retain ultimate DUTY OF CARE.   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Scope Clarification
+- **RAs are NOT clinicians:** Training focuses on recognition and referral, not treatment
+- **Screening ≠ Diagnosis:** PHQ-2/GAD-2 positive screens require clinical follow-up for diagnosis
+- **System supports, not replaces:** CheckIn enhances existing protocols, does not create new clinical obligations
+
+## Crisis Protocol Integration
+
+### Existing Infrastructure
+CheckIn integrates with (does not replace) existing institutional resources:
+- **BIT (Behavioral Intervention Team):** Urgent flags generate referrals per institutional BIT protocol
+- **Counseling Center:** Direct referral pathway for positive screens
+- **After-Hours Crisis:** Reference to 988 and campus crisis lines in all urgent alerts
+- **RA Training:** Standard crisis response training remains primary; CheckIn is supplementary
+
+### Keyword Scanning Limitations
+- Keyword detection is a **supportive trigger**, not sole determinant of crisis
+- Human review required for all flagged responses
+- Context matters: "hopeless" in "this homework is hopeless" differs from clinical context
+- Training includes examples of false positives and judgment protocols
+
+## Risk Mitigation Summary
+
+| Risk | Mitigation | Residual Risk |
+|------|------------|---------------|
+| FERPA violation | Institutional platform, access controls, staff training | Low |
+| Missed crisis | Tiered alerts, human review, integration with existing protocols | Medium (inherent in screening) |
+| Over-reliance on tool | Training emphasizes tool as aid; maintains clinical referral pathways | Low |
+| Data breach | Institutional security, no third-party vendors | Low |
+| Liability for missed intervention | Disclaimer, scope clarification, institutional adoption decision | Transferred to institution |
+
+---
+
+# COMPETITIVE POSITIONING
+
+## Current Landscape Analysis
+
+### Enterprise Platforms ($50,000+/year)
+
+| Tool | Primary Function | Gaps CheckIn Fills |
+|------|------------------|-------------------|
+| **EAB Navigate** | Academic early alerts, advising | No wellbeing/psychometric screening; no RA integration; no community topology |
+| **StarRez** | Housing management, room assignments | No mental health components; administrative focus |
+| **Civitas/Jenzabar** | Retention analytics, student success | Institutional-level; no residential-specific; no RA workflow |
+
+### Self-Assessment Tools (Free but Passive)
+
+| Tool | Primary Function | Gaps CheckIn Fills |
+|------|------------------|-------------------|
+| **CCAPS-Screen** | Multi-domain self-screening (CCMH) | Anonymous/passive; no RA integration; no community insights; no longitudinal tracking |
+| **Healthy Minds Study** | Population survey (JED Foundation) | Annual snapshot only; no individual intervention triggers; research-focused |
+| **Online screeners** | Self-initiated mental health screening | Passive engagement; no residential context; no follow-up workflow |
+
+### Survey Tools (Generic)
+
+| Tool | Primary Function | Gaps CheckIn Fills |
+|------|------------------|-------------------|
+| **Qualtrics** | General survey platform | No scoring logic; no alert protocols; no RA workflows; licensing costs |
+| **Google Forms** | Free survey creation | Raw data only; requires manual scoring; no dashboard |
+
+## CheckIn Differentiation
+
+```
+                        CHECKIN UNIQUE VALUE PROPOSITION
+
+     ┌─────────────────────────────────────────────────────────────┐
+     │                                                             │
+     │   1. RA-DELIVERED                                           │
+     │      • Embedded in natural check-in cadence                 │
+     │      • Relationship-based, not anonymous                    │
+     │      • Immediate follow-up pathway                          │
+     │                                                             │
+     │   2. TOPOLOGY-INFORMED                                      │
+     │      • Novel β₀/β₁ community structure analysis             │
+     │      • Identifies boundary/bridge residents                 │
+     │      • Structural isolation detection (beyond self-report)  │
+     │                                                             │
+     │   3. VALIDATED + BRIEF                                      │
+     │      • PHQ-4, UCLA-3, Belonging: 7,500+ combined citations  │
+     │      • 2-3 minutes (high completion rates)                  │
+     │      • Published thresholds for action                      │
+     │                                                             │
+     │   4. ZERO-COST PILOT                                        │
+     │      • Google Forms/Sheets infrastructure                   │
+     │      • No vendor contracts or licensing                     │
+     │      • Scalable based on proven value                       │
+     │                                                             │
+     │   5. RESEARCH PLATFORM                                      │
+     │      • 3+ publishable papers from pilot data                │
+     │      • Grant-fundable (novel topology + wellbeing angle)    │
+     │      • Contributes to field, not just operations            │
+     │                                                             │
+     └─────────────────────────────────────────────────────────────┘
+```
+
+## Positioning Statement
+
+> "CheckIn is a low/no-cost alternative to $50K+ annual enterprise licenses, with a novel research angle that creates grant potential. It fills the gap between broad institutional surveys (Qualtrics, Healthy Minds) and academic-focused alerts (EAB Navigate) by being RA-delivered, topology-informed, and embedded in natural residential check-ins."
+
+---
+
+# COST-BENEFIT AND ROI ANALYSIS
+
+## Cost Structure
+
+### Pilot Phase (Semester 1)
+
+| Item | Cost | Notes |
+|------|------|-------|
+| Google Forms/Sheets | $0 | Institutional Google Workspace |
+| SMS platform (Remind) | $0 | Free for educators |
+| RA time (check-ins) | $0 incremental | Already doing check-ins |
+| RD time (setup, training) | ~8 hours | One-time setup |
+| RD time (weekly monitoring) | ~2 hours/week | Decreases after initial weeks |
+| **Total Pilot Cost** | **~$0 direct** | **~40 staff-hours semester** |
+
+### Scaled Phase (Institution-wide)
+
+| Scale | Infrastructure | Est. Cost/Resident/Semester |
+|-------|---------------|----------------------------|
+| 1 building (~200 residents) | Google Sheets + Remind | $0.50 (staff time only) |
+| 5 buildings (~1,000 residents) | Airtable/low-code dashboard | $1.00–$1.50 |
+| Campus-wide (~5,000+ residents) | Custom platform (Supabase + Twilio) | $1.50–$2.00 |
+
+### Comparison to Enterprise Alternatives
+
+| Solution | Annual Cost (5,000 students) | Per-Student Cost |
+|----------|------------------------------|------------------|
+| EAB Navigate | $75,000–$150,000 | $15–$30 |
+| StarRez add-ons | $25,000–$50,000 | $5–$10 |
+| **CheckIn (scaled)** | **$7,500–$10,000** | **$1.50–$2.00** |
+
+## Benefit Quantification
+
+### Direct Benefits
+
+| Benefit | Quantification | Source |
+|---------|----------------|--------|
+| **Retained student (tuition)** | $15,000–$21,000/student | National Student Clearinghouse |
+| **Prevented crisis intervention** | $2,000–$5,000/incident | Counseling center estimates |
+| **Reduced counseling center burden** | $50–$100/diverted appointment | Early RA intervention |
+
+### Projected Outcomes (Conservative)
+
+Based on intervention literature showing 1–3% retention improvements from early mental health outreach:
+
+| Scenario | Assumption | Annual Value |
+|----------|------------|--------------|
+| **Minimum** | 0.5% retention improvement (25 students @ 5,000) | $375,000 |
+| **Expected** | 1.5% retention improvement (75 students) | $1,125,000 |
+| **Optimistic** | 3% retention improvement (150 students) | $2,250,000 |
+
+### ROI Calculation
+
+```
+PILOT ROI (Semester 1)
+─────────────────────────────────────────────────────────────
+Investment:     ~$0 direct + 40 staff-hours (~$1,000 equivalent)
+Break-even:     Retain 1 student (or prevent 1 crisis escalation)
+Expected:       At 10% of flagged residents receiving timely
+                intervention, estimate 2-5 retained students
+ROI:            20x–50x (highly favorable risk/reward)
+
+SCALED ROI (Campus-wide)
+─────────────────────────────────────────────────────────────
+Investment:     $10,000/year (infrastructure + staff time)
+Break-even:     Retain 1 student
+Expected:       75 retained students (1.5% improvement)
+ROI:            >100x
+```
+
+### Sensitivity Analysis
+
+| If retention improvement is... | And cost is... | ROI is... |
+|-------------------------------|----------------|-----------|
+| 0.5% (minimum) | $10,000 | 37x |
+| 1.0% | $10,000 | 75x |
+| 1.5% (expected) | $15,000 | 75x |
+| 2.0% | $15,000 | 100x |
+
+**Conclusion:** Even at the most conservative estimates, ROI exceeds 30x. The pilot is essentially risk-free given zero direct costs.
+
+---
+
 # API-FREE PILOT IMPLEMENTATION
 
 **Goal:** Pilot with one class of RAs and one RD before presenting to institution for scaling.
@@ -1396,9 +1677,65 @@ PHASE 4: SCALING (Post-Pilot)
 ────────────────────────────────────────────────────────────────────────────
 ○ Present to ResLife leadership
 ○ Secure institutional support
-○ Migrate to proper tech stack (if approved)
+○ Phased infrastructure migration (see below)
 ○ Expand to additional buildings
 Output: Institution-wide deployment
+```
+
+## Technical Scaling Roadmap
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         INFRASTRUCTURE SCALING PHASES                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+TIER 1: PILOT (<50 residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Google Forms → Google Sheets
+SMS:          Remind (free) or Google Voice
+Dashboard:    Sheets with conditional formatting
+Cost:         $0/month
+Maintenance:  ~2 hrs/week RD time
+Limitations:  Manual workflows, no real-time alerts
+
+TIER 2: SMALL SCALE (50-500 residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Google Forms → Airtable (or Notion)
+SMS:          Remind Pro ($10/mo) or Community (free)
+Dashboard:    Airtable interfaces with views/filters
+Automation:   Zapier (free tier) for email alerts
+Cost:         $0–$50/month
+Maintenance:  ~3 hrs/week
+Upgrade path: Add Typeform for better mobile UX
+
+TIER 3: MEDIUM SCALE (500-2,000 residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Low-code app (Bubble, Adalo, or Glide)
+SMS:          Twilio-lite integration OR WhatsApp Business
+Database:     Airtable Pro or Supabase (free tier)
+Dashboard:    Custom low-code dashboard with role-based access
+Automation:   n8n (self-hosted, free) or Make.com
+Cost:         $100–$300/month
+Maintenance:  ~5 hrs/week + occasional developer support
+
+TIER 4: INSTITUTION-WIDE (2,000-10,000+ residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Custom web app (Next.js/React + Supabase/PostgreSQL)
+SMS:          Twilio Programmable SMS ($0.0075/message)
+Database:     PostgreSQL with proper security/RBAC
+Dashboard:    Custom dashboards, RD/RA views, admin analytics
+Automation:   Server-side (cron jobs, webhooks)
+Mobile:       PWA or native app (optional)
+Cost:         $5,000–$20,000 initial build + $500–$2,000/month
+Maintenance:  Part-time developer or managed service
+
+DECISION CRITERIA FOR TIER UPGRADES:
+─────────────────────────────────────────────────────────────────────────────
+Move up when:
+• Manual processes exceed 5 hrs/week
+• Response latency becomes problematic (missing alerts)
+• Multi-building coordination becomes unwieldy
+• Institution commits funding for expansion
 ```
 
 ---
@@ -1449,3 +1786,113 @@ Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🔴")  → Red background
 Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🟠")  → Orange background
 Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🟡")  → Yellow background
 ```
+
+---
+
+# APPENDIX: PILOT RESULTS (PLACEHOLDER)
+
+*Data forthcoming from Fall 202X pilot (N=XXX residents, X floors, X RAs)*
+
+## Participation Metrics
+
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Residents invited | TBD | — |
+| Check-ins completed | — | — |
+| Response rate | ≥75% | — |
+| Average completion time | <3 min | — |
+| Dropout rate (started but not completed) | <10% | — |
+
+## Wellbeing Prevalence
+
+| Measure | N | % Positive Screen | 95% CI |
+|---------|---|-------------------|--------|
+| PHQ-2 ≥ 3 (Depression) | — | — | — |
+| GAD-2 ≥ 3 (Anxiety) | — | — | — |
+| UCLA-3 ≥ 7 (High loneliness) | — | — | — |
+| Belonging < 2.5 (Low) | — | — | — |
+| Any clinical flag | — | — | — |
+| Urgent concern | — | — | — |
+
+## Alert Accuracy
+
+| Alert Type | Triggered | Confirmed by RA | False Positive Rate |
+|------------|-----------|-----------------|---------------------|
+| 🟡 Yellow (1 flag) | — | — | — |
+| 🟠 Orange (2+ flags) | — | — | — |
+| 🔴 Red (urgent) | — | — | — |
+
+## Intervention Outcomes
+
+| Outcome | N | Notes |
+|---------|---|-------|
+| RA follow-up conversations initiated | — | — |
+| Referrals to counseling | — | — |
+| Referrals to other resources | — | — |
+| Crisis interventions | — | — |
+
+## Longitudinal Trends (Weeks 3, 8, 13)
+
+| Time Point | Mean Wellbeing Index | SD | % with Decline >15 pts |
+|------------|---------------------|----|-----------------------|
+| Week 3 (T1) | — | — | — |
+| Week 8 (T2) | — | — | — |
+| Week 13 (T3) | — | — | — |
+
+## Topology-Wellbeing Correlation (Preliminary)
+
+| Hypothesis | r | p | Support? |
+|------------|---|---|----------|
+| H1: Boundary position → lower wellbeing | — | — | — |
+| H2: More connections → lower loneliness | — | — | — |
+| H3: Bridge residents → higher engagement | — | — | — |
+
+## Qualitative Feedback
+
+### RA Feedback
+*To be collected via post-pilot survey*
+
+- Ease of use: — / 5
+- Value for resident conversations: — / 5
+- Would recommend to other RAs: — %
+- Open-ended themes: [TBD]
+
+### Resident Feedback (Optional Exit Survey)
+*If collected*
+
+- Survey felt invasive: — %
+- Survey was helpful for self-reflection: — %
+- Would complete again: — %
+
+---
+
+# REFERENCES
+
+Astin, A. W. (1984). Student involvement: A developmental theory for higher education. *Journal of College Student Personnel*, 25(4), 297-308.
+
+Cheung, F., & Lucas, R. E. (2014). Assessing the validity of single-item life satisfaction measures. *Quality of Life Research*, 23(5), 1457-1468.
+
+Hoffman, M., Richmond, J., Morrow, J., & Salomone, K. (2002). Investigating "sense of belonging" in first-year college students. *Journal of College Student Retention*, 4(3), 227-256.
+
+Hughes, M. E., Waite, L. J., Hawkley, L. C., & Cacioppo, J. T. (2004). A short scale for measuring loneliness in large surveys. *Research on Aging*, 26(6), 655-672.
+
+Kroenke, K., Spitzer, R. L., & Williams, J. B. (2003). The Patient Health Questionnaire-2: Validity of a two-item depression screener. *Medical Care*, 41(11), 1284-1292.
+
+Kroenke, K., Spitzer, R. L., Williams, J. B., Monahan, P. O., & Löwe, B. (2007). Anxiety disorders in primary care: Prevalence, impairment, comorbidity, and detection. *Annals of Internal Medicine*, 146(5), 317-325.
+
+Kroenke, K., Spitzer, R. L., Williams, J. B., & Löwe, B. (2009). An ultra-brief screening scale for anxiety and depression: The PHQ-4. *Psychosomatics*, 50(6), 613-621.
+
+Kuh, G. D. (2008). *High-impact educational practices: What they are, who has access to them, and why they matter*. AAC&U.
+
+Pace, C. R., & Kuh, G. D. (1998). *College Student Experiences Questionnaire* (4th ed.). Indiana University.
+
+Tinto, V. (1993). *Leaving college: Rethinking the causes and cures of student attrition* (2nd ed.). University of Chicago Press.
+
+Winston, R. B., & Massaro, A. V. (1987). Extracurricular involvement inventory: An instrument for assessing intensity of student involvement. *Journal of College Student Personnel*, 28(2), 169-175.
+
+---
+
+*Document Version: 2.0*
+*Last Updated: [DATE]*
+*Status: Pre-pilot specification*
+*Contact: [Author email]*
