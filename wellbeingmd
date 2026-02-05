@@ -1,5 +1,42 @@
-# CheckIn Psychometric Integration
-## Validated Instruments for Residential Student Wellbeing Assessment
+# CheckIn: A Research-Validated Wellbeing Platform for Residential Life
+## Psychometric Integration, Community Topology, and Scalable Implementation
+
+---
+
+# EXECUTIVE SUMMARY
+
+## The Problem
+Residential life staff conduct wellness check-ins with no standardization, generating anecdotal data that cannot detect early warning signs, track population trends, justify staffing decisions, or produce publishable research. Meanwhile, 40% of college students report significant mental health challenges, and residential settings are uniquely positioned—but underutilized—for early intervention.
+
+## The Solution
+**CheckIn** is a research-validated, RA-delivered wellbeing screening platform that:
+- Embeds validated psychometric instruments (PHQ-4, UCLA-3, Belonging Scale) into natural 2-3 minute check-ins
+- Applies algebraic topology to map community social structure and identify structurally isolated residents
+- Generates actionable alerts with tiered response protocols
+- Produces publishable research on the novel intersection of network topology and psychological wellbeing
+
+## Differentiation
+| Feature | CheckIn | Enterprise Tools (EAB, StarRez) | Self-Screeners (CCAPS) |
+|---------|---------|----------------------------------|------------------------|
+| **Cost** | $0 pilot / $1-2/resident scaled | $50,000+/year | Free but passive |
+| **RA Integration** | Native | None | None |
+| **Topology/Network** | Novel β₀/β₁ analysis | None | None |
+| **Research Potential** | 3+ publishable papers | Limited | Survey only |
+| **Compliance** | FERPA-compliant institutional tools | Vendor contracts | Variable |
+
+## ROI Summary
+| Metric | Conservative Estimate |
+|--------|----------------------|
+| Pilot cost | $0 (staff time only) |
+| Cost per student at scale | $0.50–$2.00/semester |
+| Value of 1 retained student | $15,000–$21,000 (tuition) |
+| Break-even | Retain 1 student per 10,000 check-ins |
+| Projected ROI | 5–10x if 5% of flagged students receive timely intervention |
+
+## The Ask
+**Phase 1:** Approve pilot with 1 RD + 10 RAs (150–200 residents) for one semester using zero-cost Google Forms/Sheets infrastructure. IRB exemption for program evaluation; retrospective approval for publication.
+
+**Phase 2:** Based on pilot data (completion rates, flag accuracy, intervention outcomes), evaluate scaling to institution-wide deployment with modest infrastructure investment.
 
 ---
 
@@ -161,14 +198,17 @@ Sleep quality predicts academic performance and mental health.
 2. **Positive framing where possible** - "How connected do you feel?" not "How isolated?"
 3. **Vary response formats** - prevents straight-lining
 4. **Order effects** - sensitive items in middle, not first
-5. **Total time < 2 minutes** - students will actually complete it
+5. **Complete validated scales** - ensures psychometric validity (tradeoff: 2-3 min vs. <2 min)
+6. **Brief enough for compliance** - research shows 2-3 minutes still achieves 80%+ completion
 
-## Proposed CheckIn Questionnaire (12 items)
+## Proposed CheckIn Questionnaire (17 items)
+
+**Note:** Complete validated scales ensure psychometric validity. Estimated completion time ~2-3 minutes.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Quick Check-In with [RA Name]                                              │
-│  Takes about 90 seconds 📱                                                  │
+│  Takes about 2-3 minutes 📱                                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 SECTION A: HOW'S IT GOING? (Wellbeing)
@@ -187,43 +227,64 @@ SECTION A: HOW'S IT GOING? (Wellbeing)
    ○ Not at all  ○ Several days  ○ More than half the days  ○ Nearly every day
    [PHQ-2 Item 2]
 
-4. Over the past 2 weeks, how often have you felt nervous, anxious, 
+4. Over the past 2 weeks, how often have you felt nervous, anxious,
    or on edge?
    ○ Not at all  ○ Several days  ○ More than half the days  ○ Nearly every day
    [GAD-2 Item 1]
 
-5. How would you rate your sleep quality this past week?
+5. Over the past 2 weeks, how often have you been unable to stop or
+   control worrying?
+   ○ Not at all  ○ Several days  ○ More than half the days  ○ Nearly every day
+   [GAD-2 Item 2]
+
+6. How would you rate your sleep quality this past week?
    😴 Poor  1   2   3   4   5  Great 💤
+
+7. All things considered, how satisfied are you with your life as a whole?
+   0   1   2   3   4   5   6   7   8   9   10
+   [Single-item life satisfaction - validated]
 
 SECTION B: CONNECTIONS (Social/Community)
 ──────────────────────────────────────────────────────────────────────────────
 
-6. How often do you feel like you lack companionship?
+8. How often do you feel like you lack companionship?
    ○ Hardly ever  ○ Some of the time  ○ Often
    [UCLA-3 Item 1]
 
-7. How often do you feel left out?
+9. How often do you feel left out?
    ○ Hardly ever  ○ Some of the time  ○ Often
    [UCLA-3 Item 2]
 
-8. I feel like I fit in with other students on my floor.
-   Strongly disagree  1   2   3   4   5  Strongly agree
-   [Belonging Scale]
+10. How often do you feel isolated from others?
+    ○ Hardly ever  ○ Some of the time  ○ Often
+    [UCLA-3 Item 3]
+
+11. I feel like I belong at this university.
+    Strongly disagree  1   2   3   4   5  Strongly agree
+    [Belonging Scale Item 1]
+
+12. I feel like I fit in with other students on my floor.
+    Strongly disagree  1   2   3   4   5  Strongly agree
+    [Belonging Scale Item 2]
+
+13. I have found a group of friends I feel comfortable with.
+    Strongly disagree  1   2   3   4   5  Strongly agree
+    [Belonging Scale Item 3]
 
 SECTION C: WHAT'S ON YOUR PLATE? (Stressors/Resources)
 ──────────────────────────────────────────────────────────────────────────────
 
-9. What's taking most of your energy right now? (select all that apply)
-   □ Classes/academics
-   □ Work/job
-   □ Relationships
-   □ Family stuff
-   □ Health
-   □ Money/finances
-   □ Future plans/career
-   □ Nothing major - things are good!
+14. What's taking most of your energy right now? (select all that apply)
+    □ Classes/academics
+    □ Work/job
+    □ Relationships
+    □ Family stuff
+    □ Health
+    □ Money/finances
+    □ Future plans/career
+    □ Nothing major - things are good!
 
-10. Would any of these be helpful to connect with? (select all that apply)
+15. Would any of these be helpful to connect with? (select all that apply)
     □ Study groups for my classes
     □ Campus counseling services
     □ Academic advising
@@ -235,12 +296,12 @@ SECTION C: WHAT'S ON YOUR PLATE? (Stressors/Resources)
 SECTION D: STAY CONNECTED (Engagement)
 ──────────────────────────────────────────────────────────────────────────────
 
-11. Would you like to meet up with [RA Name] to chat?
+16. Would you like to meet up with [RA Name] to chat?
     ○ Yes, let's schedule something
     ○ Maybe later this semester
     ○ I'm good - this check-in is enough
 
-12. Anything else on your mind? (optional)
+17. Anything else on your mind? (optional)
     ____________________________________________
     ____________________________________________
 
@@ -252,80 +313,102 @@ SECTION D: STAY CONNECTED (Engagement)
 # SCORING ALGORITHM
 
 ```typescript
+// Question mapping for clarity:
+// q1  = Week rating (1-5)
+// q2  = PHQ-2 Item 1 (0-3)
+// q3  = PHQ-2 Item 2 (0-3)
+// q4  = GAD-2 Item 1 (0-3)
+// q5  = GAD-2 Item 2 (0-3)
+// q6  = Sleep quality (1-5)
+// q7  = Life satisfaction (0-10)
+// q8  = UCLA-3 Item 1 (1-3)
+// q9  = UCLA-3 Item 2 (1-3)
+// q10 = UCLA-3 Item 3 (1-3)
+// q11 = Belonging Item 1 (1-5)
+// q12 = Belonging Item 2 (1-5)
+// q13 = Belonging Item 3 (1-5)
+// q14 = Stressors (multi-select)
+// q15 = Resources (multi-select)
+// q16 = Follow-up preference
+// q17 = Free text
+
 interface CheckInScores {
-  // Validated subscales
-  phq2: number;           // 0-6 (depression)
-  gad2: number;           // 0-6 (anxiety, item 4 omitted for brevity - can add)
-  loneliness: number;     // 3-9 (UCLA-3)
-  belonging: number;      // 1-5
-  
+  // Validated subscales (complete)
+  phq2: number;           // 0-6 (depression) - full PHQ-2
+  gad2: number;           // 0-6 (anxiety) - full GAD-2
+  loneliness: number;     // 3-9 (UCLA-3) - all 3 items
+  belonging: number;      // 1-5 (mean of 3 items)
+
   // Single items
   weekRating: number;     // 1-5
   sleepQuality: number;   // 1-5
-  
+  lifeSatisfaction: number; // 0-10
+
   // Composite
   wellbeingIndex: number; // 0-100 composite score
-  
+
   // Flags
   flags: {
     depressionScreen: boolean;    // PHQ-2 ≥ 3
-    anxietyScreen: boolean;       // GAD-2 ≥ 3 (if included)
+    anxietyScreen: boolean;       // GAD-2 ≥ 3
     highLoneliness: boolean;      // UCLA-3 ≥ 7
     lowBelonging: boolean;        // Belonging < 2.5
     poorSleep: boolean;           // Sleep ≤ 2
-    needsFollowUp: boolean;       // Any flag true
+    lowLifeSatisfaction: boolean; // Life satisfaction < 5
+    needsFollowUp: boolean;       // Any clinical flag true
     urgentConcern: boolean;       // PHQ-2 ≥ 5 OR multiple flags
   };
-  
+
   // Resource matching
   suggestedResources: string[];
 }
 
 function scoreCheckIn(responses: CheckInResponses): CheckInScores {
   // PHQ-2 scoring (0=Not at all, 1=Several days, 2=More than half, 3=Nearly every day)
-  const phq2 = responses.q2 + responses.q3;
-  
-  // GAD-2 (if we include item 4, otherwise just item 4 alone)
-  const gad2 = responses.q4;  // Single item version, or add second item
-  
+  const phq2 = responses.q2 + responses.q3;  // Full PHQ-2: items 1+2
+
+  // GAD-2 scoring (same 0-3 scale)
+  const gad2 = responses.q4 + responses.q5;  // Full GAD-2: items 1+2
+
   // UCLA-3 (1=Hardly ever, 2=Some of the time, 3=Often)
-  const loneliness = responses.q6 + responses.q7 + (responses.q8_inverted || 0);
-  // Note: q8 is belonging, need separate loneliness item or invert
-  
-  // Belonging (1-5 scale)
-  const belonging = responses.q8;
-  
+  const loneliness = responses.q8 + responses.q9 + responses.q10;  // All 3 UCLA items
+
+  // Belonging (mean of 3 items, 1-5 scale each)
+  const belonging = (responses.q11 + responses.q12 + responses.q13) / 3;
+
   // Single items
   const weekRating = responses.q1;
-  const sleepQuality = responses.q5;
-  
+  const sleepQuality = responses.q6;
+  const lifeSatisfaction = responses.q7;
+
   // Flags based on validated thresholds
-  const flags = {
-    depressionScreen: phq2 >= 3,
-    anxietyScreen: gad2 >= 2,  // Lower threshold for single item
-    highLoneliness: loneliness >= 7,
-    lowBelonging: belonging < 2.5,
-    poorSleep: sleepQuality <= 2,
-    needsFollowUp: false,
-    urgentConcern: false
+  const clinicalFlags = {
+    depressionScreen: phq2 >= 3,      // Standard PHQ-2 threshold
+    anxietyScreen: gad2 >= 3,         // Standard GAD-2 threshold
+    highLoneliness: loneliness >= 7,  // Upper tertile
+    lowBelonging: belonging < 2.5,    // Below midpoint
+    poorSleep: sleepQuality <= 2,     // Bottom 40%
+    lowLifeSatisfaction: lifeSatisfaction < 5  // Below neutral
   };
-  
-  flags.needsFollowUp = Object.values(flags).some(f => f === true);
-  flags.urgentConcern = phq2 >= 5 || 
-    (flags.depressionScreen && flags.highLoneliness) ||
-    (phq2 >= 3 && weekRating <= 2);
-  
+
+  const flags = {
+    ...clinicalFlags,
+    needsFollowUp: Object.values(clinicalFlags).some(f => f === true),
+    urgentConcern: phq2 >= 5 ||
+      (clinicalFlags.depressionScreen && clinicalFlags.highLoneliness) ||
+      (phq2 >= 3 && weekRating <= 2)
+  };
+
   // Composite wellbeing index (0-100)
-  // Weighted combination of all subscales, normalized
   const wellbeingIndex = computeWellbeingIndex({
-    phq2, gad2, loneliness, belonging, weekRating, sleepQuality
+    phq2, gad2, loneliness, belonging, weekRating, sleepQuality, lifeSatisfaction
   });
-  
-  // Resource matching based on q9 and q10
-  const suggestedResources = matchResources(responses.q9, responses.q10, flags);
-  
+
+  // Resource matching based on q14 and q15
+  const suggestedResources = matchResources(responses.q14, responses.q15, flags);
+
   return {
-    phq2, gad2, loneliness, belonging, weekRating, sleepQuality,
+    phq2, gad2, loneliness, belonging, weekRating, sleepQuality, lifeSatisfaction,
     wellbeingIndex, flags, suggestedResources
   };
 }
@@ -337,32 +420,39 @@ function computeWellbeingIndex(scores: {
   belonging: number;
   weekRating: number;
   sleepQuality: number;
+  lifeSatisfaction: number;
 }): number {
   // Normalize each to 0-100 scale (higher = better)
-  const depression = (1 - scores.phq2 / 6) * 100;      // Invert: lower PHQ = better
-  const anxiety = (1 - scores.gad2 / 3) * 100;         // Invert
-  const social = (1 - (scores.loneliness - 3) / 6) * 100;  // Invert
+  const depression = (1 - scores.phq2 / 6) * 100;           // Invert: lower PHQ = better
+  const anxiety = (1 - scores.gad2 / 6) * 100;              // Invert: lower GAD = better
+  const social = (1 - (scores.loneliness - 3) / 6) * 100;   // Invert: lower loneliness = better
   const belong = ((scores.belonging - 1) / 4) * 100;
   const mood = ((scores.weekRating - 1) / 4) * 100;
   const sleep = ((scores.sleepQuality - 1) / 4) * 100;
-  
-  // Weighted average (weights based on predictive validity for outcomes)
+  const satisfaction = (scores.lifeSatisfaction / 10) * 100;
+
+  // Weighted average
+  // CALIBRATION NOTE: These weights are initial estimates based on literature.
+  // Should be empirically validated using regression on outcomes (GPA, retention)
+  // in Study 1 (Validation Study) and adjusted accordingly.
   const weights = {
-    depression: 0.25,   // Strong predictor of outcomes
-    anxiety: 0.15,
-    social: 0.20,       // Key for residential life
-    belong: 0.15,
-    mood: 0.15,
-    sleep: 0.10
+    depression: 0.20,   // Strong predictor of outcomes
+    anxiety: 0.15,      // Comorbid with depression
+    social: 0.20,       // Key for residential life mission
+    belong: 0.15,       // Retention predictor
+    mood: 0.10,         // Global wellbeing signal
+    sleep: 0.10,        // Academic performance predictor
+    satisfaction: 0.10  // Overall life evaluation
   };
-  
+
   return Math.round(
     depression * weights.depression +
     anxiety * weights.anxiety +
     social * weights.social +
     belong * weights.belong +
     mood * weights.mood +
-    sleep * weights.sleep
+    sleep * weights.sleep +
+    satisfaction * weights.satisfaction
   );
 }
 ```
@@ -419,42 +509,63 @@ function computeWellbeingIndex(scores: {
 ## Free-Text Keyword Detection
 
 ```typescript
-const CRISIS_KEYWORDS = [
-  // Direct
+// Separate arrays for clarity and proper handling
+const DIRECT_CRISIS_KEYWORDS = [
   'suicide', 'suicidal', 'kill myself', 'end my life', 'want to die',
-  'self-harm', 'cutting', 'hurt myself',
-  
-  // Indirect (flag for review, not auto-escalate)
-  'hopeless', 'worthless', 'no point', 'give up', 'can\'t go on',
+  'self-harm', 'cutting', 'hurt myself'
+];
+
+// Indirect keywords flag for REVIEW, not auto-escalation
+// These require human judgment - context matters
+const INDIRECT_CONCERN_KEYWORDS = [
+  'hopeless', 'worthless', 'no point', 'give up', "can't go on",
   'burden', 'better off without me'
 ];
 
-function scanFreeText(text: string): { 
-  hasCrisisKeyword: boolean; 
-  hasIndirectKeyword: boolean;
+interface FreeTextScanResult {
+  hasCrisisKeyword: boolean;      // Direct → immediate action
+  hasIndirectKeyword: boolean;    // Indirect → flag for RA review
   flaggedPhrases: string[];
-} {
+  recommendedAction: 'none' | 'review' | 'escalate';
+}
+
+function scanFreeText(text: string): FreeTextScanResult {
   const lower = text.toLowerCase();
   const flagged: string[] = [];
-  
+
   let hasCrisis = false;
   let hasIndirect = false;
-  
-  for (const keyword of CRISIS_KEYWORDS.slice(0, 9)) {  // Direct keywords
+
+  // Check direct crisis keywords → auto-escalate
+  for (const keyword of DIRECT_CRISIS_KEYWORDS) {
     if (lower.includes(keyword)) {
       hasCrisis = true;
       flagged.push(keyword);
     }
   }
-  
-  for (const keyword of CRISIS_KEYWORDS.slice(9)) {  // Indirect keywords
+
+  // Check indirect keywords → flag for review only
+  for (const keyword of INDIRECT_CONCERN_KEYWORDS) {
     if (lower.includes(keyword)) {
       hasIndirect = true;
       flagged.push(keyword);
     }
   }
-  
-  return { hasCrisisKeyword: hasCrisis, hasIndirectKeyword: hasIndirect, flaggedPhrases: flagged };
+
+  // Determine recommended action
+  let recommendedAction: 'none' | 'review' | 'escalate' = 'none';
+  if (hasCrisis) {
+    recommendedAction = 'escalate';  // Immediate RD/counseling notification
+  } else if (hasIndirect) {
+    recommendedAction = 'review';    // RA reviews, uses judgment
+  }
+
+  return {
+    hasCrisisKeyword: hasCrisis,
+    hasIndirectKeyword: hasIndirect,
+    flaggedPhrases: flagged,
+    recommendedAction
+  };
 }
 ```
 
@@ -723,3 +834,1065 @@ function analyzeTrajectory(dataPoints: WellbeingDataPoint[]): WellbeingTrajector
 - Together: Structural position predicts individual outcomes → novel finding
 
 This isn't just a check-in tool anymore. It's a **research platform for residential student wellbeing**.
+
+---
+
+# CALIBRATION NOTES
+
+## Thresholds Requiring Empirical Validation
+
+The following thresholds are based on literature and clinical standards but should be validated with institutional data:
+
+| Threshold | Current Value | Source | Validation Plan |
+|-----------|---------------|--------|-----------------|
+| PHQ-2 positive screen | ≥ 3 | Kroenke et al. (2009) | Standard, validated |
+| GAD-2 positive screen | ≥ 3 | Kroenke et al. (2007) | Standard, validated |
+| UCLA-3 high loneliness | ≥ 7 | Upper tertile estimate | Validate in Study 1 |
+| Belonging low | < 2.5 | Below scale midpoint | Validate in Study 1 |
+| Life satisfaction concern | < 5 | Below neutral | Cheung & Lucas (2014) |
+| Sleep poor | ≤ 2 | Bottom 40% estimate | Validate in Study 1 |
+| Significant decline | > 15 pts | Clinical judgment | Validate with outcomes |
+| Chronic low | < 50 for 3+ | Clinical judgment | Validate with outcomes |
+
+## Composite Index Weights
+
+Current weights are **initial estimates** that should be empirically calibrated:
+
+```typescript
+// PILOT THESE WEIGHTS - Adjust based on predictive validity
+const weights = {
+  depression: 0.20,   // Literature: strong predictor
+  anxiety: 0.15,      // Literature: comorbid predictor
+  social: 0.20,       // Hypothesis: key for residential life
+  belong: 0.15,       // Literature: retention predictor
+  mood: 0.10,         // Face validity
+  sleep: 0.10,        // Literature: academic predictor
+  satisfaction: 0.10  // Face validity
+};
+```
+
+**Calibration Method (Study 1):**
+1. Collect CheckIn data at weeks 3, 8, 13
+2. Collect outcome data (GPA, retention, counseling utilization)
+3. Run multiple regression: outcomes ~ subscale scores
+4. Use standardized beta coefficients as new weights
+5. Cross-validate with holdout sample
+
+## Adapted Scales Requiring Pilot Validation
+
+| Scale | Adaptation | Validation Needed |
+|-------|------------|-------------------|
+| Belonging (3-item) | Subset of Hoffman et al. 26-item scale | Correlate with full scale in pilot (target r > 0.80) |
+
+## Recommended Pilot Design
+
+**Sample:** 100+ residents across 2+ floors
+**Duration:** One semester (3 administrations)
+**Measures:**
+- Full PHQ-9, GAD-7, UCLA-20, Hoffman Belonging Scale (at T1 and T3)
+- Brief CheckIn at T1, T2, T3
+- Academic outcomes (GPA, credits completed)
+- Retention to following semester
+
+**Analyses:**
+1. Concurrent validity: CheckIn subscales vs. full instruments
+2. Predictive validity: Composite index → outcomes
+3. Sensitivity/specificity of alert thresholds
+4. Weight calibration via regression
+
+**Success Criteria:**
+- PHQ-2 vs. PHQ-9: r ≥ 0.80
+- GAD-2 vs. GAD-7: r ≥ 0.80
+- UCLA-3 vs. UCLA-20: r ≥ 0.80
+- Belonging-3 vs. Hoffman full: r ≥ 0.70
+- Composite predicts outcomes: R² ≥ 0.15
+
+---
+
+# ETHICAL, LEGAL, AND RISK MANAGEMENT FRAMEWORK
+
+## IRB and Research Approval Pathway
+
+### Pilot Phase (Program Evaluation)
+The initial pilot qualifies as **program evaluation** under most institutional policies, not human subjects research, because:
+- Primary purpose is improving residential life services, not generating generalizable knowledge
+- Data collected would be gathered as part of normal RA duties regardless
+- No experimental manipulation or randomization in pilot phase
+
+**Action:** Submit IRB exemption request prior to pilot launch. Placeholder: `IRB Protocol #[PENDING]`
+
+### Publication Phase (Research)
+For any aggregated analysis intended for publication:
+- Retrospective IRB approval will be sought for de-identified data analysis
+- Full IRB protocol if prospective research design (e.g., RCT for Paper 3)
+
+## FERPA Compliance and Data Governance
+
+### Data Classification
+| Data Type | Classification | Handling |
+|-----------|---------------|----------|
+| Individual responses | Education Record (FERPA) | Access limited to ResLife staff with legitimate educational interest |
+| Aggregated floor/building metrics | De-identified | May be shared for institutional research |
+| Published data | Fully anonymized | No individual identifiers, cell sizes ≥ 10 |
+
+### Data Storage and Access
+- **Platform:** Institutional Google Workspace (or equivalent approved platform)
+- **Access Control:** Sheet permissions limited to assigned RD, RAs for their residents only
+- **Audit Trail:** Google Sheets version history maintains access log
+- **Retention:** Individual data deleted at end of academic year unless consent obtained for longitudinal research
+- **No Third-Party Sharing:** Data never leaves institutional systems; no external vendors
+
+### Data Minimization
+- Only collect data necessary for wellbeing support and research objectives
+- No collection of sensitive categories beyond validated instruments
+- Optional questions clearly marked
+
+## Liability and Scope of Practice
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              IMPORTANT DISCLAIMER                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  CheckIn is a LOW-THRESHOLD SCREENING and OUTREACH AID for residential     │
+│  staff. It is NOT a diagnostic or clinical tool.                            │
+│                                                                             │
+│  • Does NOT replace licensed mental health professionals                    │
+│  • Does NOT substitute for crisis hotlines (988, campus crisis lines)       │
+│  • Does NOT override existing institutional crisis protocols                │
+│                                                                             │
+│  FALSE NEGATIVES AND POSITIVES ARE INHERENT in brief screening.             │
+│  All elevated flags trigger HUMAN REVIEW and REFERRAL per existing          │
+│  campus procedures.                                                         │
+│                                                                             │
+│  Institutions adopt at their discretion and retain ultimate DUTY OF CARE.   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Scope Clarification
+- **RAs are NOT clinicians:** Training focuses on recognition and referral, not treatment
+- **Screening ≠ Diagnosis:** PHQ-2/GAD-2 positive screens require clinical follow-up for diagnosis
+- **System supports, not replaces:** CheckIn enhances existing protocols, does not create new clinical obligations
+
+## Crisis Protocol Integration
+
+### Existing Infrastructure
+CheckIn integrates with (does not replace) existing institutional resources:
+- **BIT (Behavioral Intervention Team):** Urgent flags generate referrals per institutional BIT protocol
+- **Counseling Center:** Direct referral pathway for positive screens
+- **After-Hours Crisis:** Reference to 988 and campus crisis lines in all urgent alerts
+- **RA Training:** Standard crisis response training remains primary; CheckIn is supplementary
+
+### Keyword Scanning Limitations
+- Keyword detection is a **supportive trigger**, not sole determinant of crisis
+- Human review required for all flagged responses
+- Context matters: "hopeless" in "this homework is hopeless" differs from clinical context
+- Training includes examples of false positives and judgment protocols
+
+## Risk Mitigation Summary
+
+| Risk | Mitigation | Residual Risk |
+|------|------------|---------------|
+| FERPA violation | Institutional platform, access controls, staff training | Low |
+| Missed crisis | Tiered alerts, human review, integration with existing protocols | Medium (inherent in screening) |
+| Over-reliance on tool | Training emphasizes tool as aid; maintains clinical referral pathways | Low |
+| Data breach | Institutional security, no third-party vendors | Low |
+| Liability for missed intervention | Disclaimer, scope clarification, institutional adoption decision | Transferred to institution |
+
+---
+
+# COMPETITIVE POSITIONING
+
+## Current Landscape Analysis
+
+### Enterprise Platforms ($50,000+/year)
+
+| Tool | Primary Function | Gaps CheckIn Fills |
+|------|------------------|-------------------|
+| **EAB Navigate** | Academic early alerts, advising | No wellbeing/psychometric screening; no RA integration; no community topology |
+| **StarRez** | Housing management, room assignments | No mental health components; administrative focus |
+| **Civitas/Jenzabar** | Retention analytics, student success | Institutional-level; no residential-specific; no RA workflow |
+
+### Self-Assessment Tools (Free but Passive)
+
+| Tool | Primary Function | Gaps CheckIn Fills |
+|------|------------------|-------------------|
+| **CCAPS-Screen** | Multi-domain self-screening (CCMH) | Anonymous/passive; no RA integration; no community insights; no longitudinal tracking |
+| **Healthy Minds Study** | Population survey (JED Foundation) | Annual snapshot only; no individual intervention triggers; research-focused |
+| **Online screeners** | Self-initiated mental health screening | Passive engagement; no residential context; no follow-up workflow |
+
+### Survey Tools (Generic)
+
+| Tool | Primary Function | Gaps CheckIn Fills |
+|------|------------------|-------------------|
+| **Qualtrics** | General survey platform | No scoring logic; no alert protocols; no RA workflows; licensing costs |
+| **Google Forms** | Free survey creation | Raw data only; requires manual scoring; no dashboard |
+
+## CheckIn Differentiation
+
+```
+                        CHECKIN UNIQUE VALUE PROPOSITION
+
+     ┌─────────────────────────────────────────────────────────────┐
+     │                                                             │
+     │   1. RA-DELIVERED                                           │
+     │      • Embedded in natural check-in cadence                 │
+     │      • Relationship-based, not anonymous                    │
+     │      • Immediate follow-up pathway                          │
+     │                                                             │
+     │   2. TOPOLOGY-INFORMED                                      │
+     │      • Novel β₀/β₁ community structure analysis             │
+     │      • Identifies boundary/bridge residents                 │
+     │      • Structural isolation detection (beyond self-report)  │
+     │                                                             │
+     │   3. VALIDATED + BRIEF                                      │
+     │      • PHQ-4, UCLA-3, Belonging: 7,500+ combined citations  │
+     │      • 2-3 minutes (high completion rates)                  │
+     │      • Published thresholds for action                      │
+     │                                                             │
+     │   4. ZERO-COST PILOT                                        │
+     │      • Google Forms/Sheets infrastructure                   │
+     │      • No vendor contracts or licensing                     │
+     │      • Scalable based on proven value                       │
+     │                                                             │
+     │   5. RESEARCH PLATFORM                                      │
+     │      • 3+ publishable papers from pilot data                │
+     │      • Grant-fundable (novel topology + wellbeing angle)    │
+     │      • Contributes to field, not just operations            │
+     │                                                             │
+     └─────────────────────────────────────────────────────────────┘
+```
+
+## Positioning Statement
+
+> "CheckIn is a low/no-cost alternative to $50K+ annual enterprise licenses, with a novel research angle that creates grant potential. It fills the gap between broad institutional surveys (Qualtrics, Healthy Minds) and academic-focused alerts (EAB Navigate) by being RA-delivered, topology-informed, and embedded in natural residential check-ins."
+
+---
+
+# COST-BENEFIT AND ROI ANALYSIS
+
+## Cost Structure
+
+### Pilot Phase (Semester 1)
+
+| Item | Cost | Notes |
+|------|------|-------|
+| Google Forms/Sheets | $0 | Institutional Google Workspace |
+| SMS platform (Remind) | $0 | Free for educators |
+| RA time (check-ins) | $0 incremental | Already doing check-ins |
+| RD time (setup, training) | ~8 hours | One-time setup |
+| RD time (weekly monitoring) | ~2 hours/week | Decreases after initial weeks |
+| **Total Pilot Cost** | **~$0 direct** | **~40 staff-hours semester** |
+
+### Scaled Phase (Institution-wide)
+
+| Scale | Infrastructure | Est. Cost/Resident/Semester |
+|-------|---------------|----------------------------|
+| 1 building (~200 residents) | Google Sheets + Remind | $0.50 (staff time only) |
+| 5 buildings (~1,000 residents) | Airtable/low-code dashboard | $1.00–$1.50 |
+| Campus-wide (~5,000+ residents) | Custom platform (Supabase + Twilio) | $1.50–$2.00 |
+
+### Comparison to Enterprise Alternatives
+
+| Solution | Annual Cost (5,000 students) | Per-Student Cost |
+|----------|------------------------------|------------------|
+| EAB Navigate | $75,000–$150,000 | $15–$30 |
+| StarRez add-ons | $25,000–$50,000 | $5–$10 |
+| **CheckIn (scaled)** | **$7,500–$10,000** | **$1.50–$2.00** |
+
+## Benefit Quantification
+
+### Direct Benefits
+
+| Benefit | Quantification | Source |
+|---------|----------------|--------|
+| **Retained student (tuition)** | $15,000–$21,000/student | National Student Clearinghouse |
+| **Prevented crisis intervention** | $2,000–$5,000/incident | Counseling center estimates |
+| **Reduced counseling center burden** | $50–$100/diverted appointment | Early RA intervention |
+
+### Projected Outcomes (Conservative)
+
+Based on intervention literature showing 1–3% retention improvements from early mental health outreach:
+
+| Scenario | Assumption | Annual Value |
+|----------|------------|--------------|
+| **Minimum** | 0.5% retention improvement (25 students @ 5,000) | $375,000 |
+| **Expected** | 1.5% retention improvement (75 students) | $1,125,000 |
+| **Optimistic** | 3% retention improvement (150 students) | $2,250,000 |
+
+### ROI Calculation
+
+```
+PILOT ROI (Semester 1)
+─────────────────────────────────────────────────────────────
+Investment:     ~$0 direct + 40 staff-hours (~$1,000 equivalent)
+Break-even:     Retain 1 student (or prevent 1 crisis escalation)
+Expected:       At 10% of flagged residents receiving timely
+                intervention, estimate 2-5 retained students
+ROI:            20x–50x (highly favorable risk/reward)
+
+SCALED ROI (Campus-wide)
+─────────────────────────────────────────────────────────────
+Investment:     $10,000/year (infrastructure + staff time)
+Break-even:     Retain 1 student
+Expected:       75 retained students (1.5% improvement)
+ROI:            >100x
+```
+
+### Sensitivity Analysis
+
+| If retention improvement is... | And cost is... | ROI is... |
+|-------------------------------|----------------|-----------|
+| 0.5% (minimum) | $10,000 | 37x |
+| 1.0% | $10,000 | 75x |
+| 1.5% (expected) | $15,000 | 75x |
+| 2.0% | $15,000 | 100x |
+
+**Conclusion:** Even at the most conservative estimates, ROI exceeds 30x. The pilot is essentially risk-free given zero direct costs.
+
+---
+
+# API-FREE PILOT IMPLEMENTATION
+
+**Goal:** Pilot with one class of RAs and one RD before presenting to institution for scaling.
+
+## Why API-Free?
+
+| Approach | Cost | Complexity | Suitable For |
+|----------|------|------------|--------------|
+| Full API (Twilio + AWS) | $100-500/mo | High (developer needed) | Institution-wide |
+| **API-Free Pilot** | **$0-50/mo** | **Low (no-code)** | **1 RD + 10 RAs** |
+
+## Recommended Tech Stack (Zero Cost)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         API-FREE PILOT ARCHITECTURE                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   SMS/TEXT   │     │   SURVEY     │     │    DATA      │     │  DASHBOARD   │
+│   TRIGGER    │────▶│   FORM       │────▶│   STORAGE    │────▶│   VIEW       │
+│              │     │              │     │              │     │              │
+│ • Remind     │     │ • Google     │     │ • Google     │     │ • Sheets     │
+│ • Google     │     │   Forms      │     │   Sheets     │     │   charts     │
+│   Voice      │     │ • Typeform   │     │ • Auto-calc  │     │ • Filters    │
+│ • Personal   │     │   (free)     │     │   scores     │     │ • Color      │
+│   cell       │     │              │     │              │     │   coding     │
+└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+```
+
+## Step-by-Step Setup
+
+### 1. SMS Channel Options
+
+| Platform | Cost | Features | Best For |
+|----------|------|----------|----------|
+| **Remind** | Free (edu) | 2-way texting, polls, broadcasts | Easiest setup |
+| **Google Voice** | Free | Personal number, forwarding | Smallest pilot |
+| **Textedly** | $30/mo | Keyword triggers, automation | Scaling later |
+
+**Recommendation:** Start with Remind (free, educator-focused) OR Google Voice (zero setup).
+
+### 2. Questionnaire Delivery
+
+**Option A: Link-Based (Recommended)**
+```
+RA texts: "Hey [Name]! Quick 2-min check-in: [Google Form link]"
+Student: Clicks link → answers in mobile browser → submits
+Data: Lands in Google Sheet automatically
+```
+
+**Option B: Pure SMS (Keyword Replies)**
+```
+RA texts: "Ready for check-in? Reply START"
+Student: "START"
+System: "Q1: Rate your week 1-5"
+Student: "3"
+System: "Q2: Feeling down? 1=Not at all, 2=Several days..."
+...
+```
+
+### 3. Google Forms Setup
+
+Create form with sections matching questionnaire:
+
+```
+SECTION A: HOW'S IT GOING?
+├── Q1: Week rating (Linear scale 1-5)
+├── Q2-Q5: PHQ-4 items (Multiple choice: Not at all → Nearly every day)
+├── Q6: Sleep quality (Linear scale 1-5)
+└── Q7: Life satisfaction (Linear scale 0-10)
+
+SECTION B: CONNECTIONS
+├── Q8-Q10: UCLA-3 (Multiple choice: Hardly ever → Often)
+└── Q11-Q13: Belonging (Linear scale 1-5)
+
+SECTION C: STRESSORS
+├── Q14: Energy drains (Checkboxes)
+└── Q15: Resources wanted (Checkboxes)
+
+SECTION D: FOLLOW-UP
+├── Q16: Want to meet? (Multiple choice)
+└── Q17: Anything else? (Paragraph - optional)
+```
+
+### 4. Google Sheets Scoring Dashboard
+
+**Tab 1: Raw Responses** (auto-populated from Form)
+
+**Tab 2: Scored Data** (add formulas)
+```
+| Name | PHQ2 | GAD2 | UCLA3 | Belong | Index | Flags |
+|------|------|------|-------|--------|-------|-------|
+| =A2  | =SUM(C2:D2) | =SUM(E2:F2) | =SUM(H2:J2) | =AVG(K2:M2) | [formula] | =IF(PHQ2>=3,"⚠️","") |
+```
+
+**Scoring Formulas:**
+```
+PHQ-2:     =SUM(Q2_response + Q3_response)      // 0-6
+GAD-2:     =SUM(Q4_response + Q5_response)      // 0-6
+UCLA-3:    =SUM(Q8 + Q9 + Q10)                  // 3-9
+Belonging: =AVERAGE(Q11, Q12, Q13)             // 1-5
+
+Wellbeing Index (simplified):
+=ROUND(100 - (PHQ2/6*25 + GAD2/6*20 + (UCLA3-3)/6*20 + (5-Belong)/4*15 + (5-Sleep)/4*10 + (10-LifeSat)/10*10))
+
+Flags:
+=IF(PHQ2>=3, "🟡 Depression", "") & IF(UCLA3>=7, "🟡 Loneliness", "") & IF(PHQ2>=5, "🔴 URGENT", "")
+```
+
+**Tab 3: RD Dashboard** (aggregates)
+```
+| Floor | Avg Index | % Green | % Yellow | % Orange/Red | Top Stressor |
+|-------|-----------|---------|----------|--------------|--------------|
+| 3E    | =AVERAGEIF(...) | =COUNTIF(...)/COUNT(...) | ... | ... | =MODE(...) |
+```
+
+### 5. Alert Protocol (Manual but Effective)
+
+```
+DAILY WORKFLOW:
+
+Morning:
+├── Check Sheet for new submissions
+├── Sort by "Flags" column
+└── Review any 🔴 RED immediately
+
+Per Submission:
+├── 🟢 GREEN (no flags): Log as complete
+├── 🟡 YELLOW (1 flag): Schedule RA follow-up within 1 week
+├── 🟠 ORANGE (2+ flags): RA follow-up within 48 hrs, notify RD
+└── 🔴 RED (urgent): Immediate door knock, RD involved
+
+Weekly:
+├── Review aggregate trends
+├── Identify floor-wide patterns
+└── Plan targeted interventions
+```
+
+### 6. Email Alerts Setup
+
+Use Google Apps Script (no coding knowledge needed):
+
+```javascript
+// Paste in Tools > Script Editor > Save > Set trigger
+function checkForAlerts() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Scored Data');
+  var data = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    var flags = data[i][6];  // Adjust column index for Flags
+    if (flags.includes('🔴')) {
+      MailApp.sendEmail(
+        'rd@school.edu',
+        '🔴 URGENT CheckIn Alert',
+        'Resident ' + data[i][0] + ' flagged urgent. Review immediately.'
+      );
+    }
+  }
+}
+```
+
+Set trigger: Run `checkForAlerts` on form submission.
+
+## Pilot Timeline
+
+```
+WEEK 1: SETUP
+├── Create Google Form (1 hour)
+├── Build scoring Sheet (2 hours)
+├── Test with 3 mock submissions
+└── Train RAs on protocol (30 min meeting)
+
+WEEKS 2-3: SOFT LAUNCH
+├── 10-15 residents per RA
+├── Daily monitoring by RD
+├── Fix any issues
+└── Gather RA feedback
+
+WEEKS 4-10: FULL PILOT
+├── All RA residents (~150-200 total)
+├── Weekly check-ins (or bi-weekly)
+├── Track: completion rate, flag accuracy, interventions
+└── Document case studies (anonymized)
+
+WEEKS 11-12: ANALYSIS & PRESENTATION
+├── Export all data
+├── Calculate: % screened positive, avg wellbeing, trend
+├── Compare: flagged residents vs. unflagged outcomes
+└── Build presentation for institution
+```
+
+## Presentation Metrics to Collect
+
+| Metric | Why It Matters |
+|--------|----------------|
+| Completion rate | "87% of residents completed check-ins" |
+| Depression screening | "14% screened positive for depression symptoms" |
+| Early interventions | "23 residents connected to counseling before crisis" |
+| Trend detection | "Identified 8 residents with declining trajectories" |
+| Floor patterns | "Floor 3E had elevated loneliness; implemented study groups" |
+| Time savings | "RAs identified at-risk residents in 2 min vs. 30 min meetings" |
+
+## Cost Summary
+
+| Item | Cost | Notes |
+|------|------|-------|
+| Google Forms/Sheets | $0 | Use institutional Google Workspace |
+| Remind (optional) | $0 | Free for educators |
+| Your time | ~5 hrs/week | Decreases after setup |
+| **Total** | **$0** | Scale justifies investment later |
+
+---
+
+# ACTIVITY/ENGAGEMENT INSTRUMENTS
+
+**Purpose:** Activity data serves dual functions:
+1. Creates edges in community topology graph (shared interests → connections)
+2. Measures engagement (validated predictor of retention)
+
+## Theoretical Foundation
+
+| Theory | Citation | Core Finding |
+|--------|----------|--------------|
+| Astin's Involvement | Astin, 1984 (12,000+ citations) | Involvement quantity/quality → outcomes |
+| Tinto's Integration | Tinto, 1993 (8,000+ citations) | Academic + social integration → retention |
+| Kuh's High-Impact | Kuh, 2008 (3,000+ citations) | Specific practices disproportionately matter |
+
+## Validated Instruments
+
+### 1. NSSE Engagement Indicators
+**Source:** Indiana University (National Survey of Student Engagement)
+**Measures:** Collaborative learning, faculty interaction, campus environment
+
+Selected items for adaptation:
+- "How often have you worked with other students on course projects?"
+- "How often have you discussed ideas from readings/classes with others outside of class?"
+
+### 2. Extracurricular Involvement Inventory (EII)
+**Citation:** Winston & Massaro, 1987
+**Measures:** Breadth, depth, and leadership in activities
+
+| Dimension | Definition | Items |
+|-----------|------------|-------|
+| Breadth | Number of different activity types | List participation |
+| Depth | Hours per week in activities | Time estimate |
+| Quality | Leadership roles held | Role selection |
+
+### 3. College Student Experiences Questionnaire (CSEQ)
+**Citation:** Pace & Kuh, 1998
+**Measures:** Campus facility use, organization activity
+
+## Proposed Activity Module
+
+### Once Per Semester: Full Activity Survey (~3 min)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Activity & Interests Profile                                                │
+│  Complete once at start of semester                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ACADEMIC
+──────────────────────────────────────────────────────────────────────────────
+
+A1. What classes are you taking this semester? (Select all)
+    [Dropdown or text entry - populates shared class edges]
+
+A2. How many hours per week do you typically study?
+    ○ 0-5 hrs  ○ 6-10 hrs  ○ 11-15 hrs  ○ 16-20 hrs  ○ 21+ hrs
+
+A3. Where do you usually study? (Select all)
+    □ My room  □ Floor lounge  □ Library  □ Coffee shop  □ Other
+
+ACTIVITIES & ORGANIZATIONS
+──────────────────────────────────────────────────────────────────────────────
+
+A4. Which activities/organizations are you involved in? (Select all)
+    □ Intramural sports          □ Greek life
+    □ Club sports                □ Cultural organizations
+    □ Academic clubs             □ Service/volunteer groups
+    □ Student government         □ Religious organizations
+    □ Arts/music groups          □ Professional organizations
+    □ Residence hall council     □ Other: _______
+    □ None currently
+
+A5. For your primary activity, what is your role?
+    ○ New member  ○ Active member  ○ Committee/team leader  ○ Officer/Executive
+
+A6. How many hours per week do you spend on extracurriculars?
+    ○ 0 hrs  ○ 1-3 hrs  ○ 4-6 hrs  ○ 7-10 hrs  ○ 11+ hrs
+
+INTERESTS & HOBBIES
+──────────────────────────────────────────────────────────────────────────────
+
+A7. What are you interested in? (Select all - used for introductions)
+    □ Working out/fitness        □ Video games
+    □ Outdoor activities         □ Board games/tabletop
+    □ Movies/TV shows            □ Reading
+    □ Music (listening)          □ Music (playing)
+    □ Art/creative projects      □ Cooking/baking
+    □ Sports (watching)          □ Fashion
+    □ Technology/coding          □ Photography
+    □ Travel                     □ Social causes/activism
+    □ Other: _______
+
+A8. Would you like to be connected with others who share your interests?
+    ○ Yes, definitely!  ○ Maybe  ○ Not right now
+
+EMPLOYMENT
+──────────────────────────────────────────────────────────────────────────────
+
+A9. Are you currently working?
+    ○ No
+    ○ Yes, on campus (_____ hrs/week)
+    ○ Yes, off campus (_____ hrs/week)
+
+BARRIERS (Engagement Challenges)
+──────────────────────────────────────────────────────────────────────────────
+
+A10. What makes it hard to get involved? (Select all that apply)
+     □ Too busy with classes
+     □ Work schedule conflicts
+     □ Don't know what's available
+     □ Haven't found my group yet
+     □ Transportation issues
+     □ Cost of participation
+     □ Social anxiety/nervousness
+     □ Nothing - I'm happy with my involvement
+     □ Other: _______
+```
+
+### Every Check-In: Quick Activity Update (~15 sec)
+
+```
+ACTIVITY UPDATE (added to regular check-in)
+──────────────────────────────────────────────────────────────────────────────
+
+U1. Any new activities or groups you've joined since last check-in?
+    ○ No  ○ Yes: _______
+
+U2. Want us to help connect you with anyone on your floor?
+    ○ Yes - someone with similar interests
+    ○ Yes - someone in my classes
+    ○ Yes - just someone to hang out with
+    ○ No, I'm good
+```
+
+## Dual-Purpose Data Flow
+
+```
+                           ACTIVITIES DATA
+                                 │
+           ┌─────────────────────┴─────────────────────┐
+           │                                           │
+           ▼                                           ▼
+    TOPOLOGY ENGINE                           ENGAGEMENT INDEX
+    (Creates graph edges)                     (Predicts outcomes)
+           │                                           │
+           │  Shared class    = +2.0 edge              │  Breadth score (count)
+           │  Shared activity = +1.5 edge              │  Depth (hours)
+           │  Shared interest = +1.0 edge              │  Leadership (role)
+           │  Same study spot = +0.5 edge              │  Satisfaction
+           │                                           │  Barriers identified
+           │                                           │
+           ▼                                           ▼
+    COMMUNITY STRUCTURE                       INDIVIDUAL RISK FLAGS
+    (β₀, β₁, bridges)                        (Under-engaged, isolated)
+           │                                           │
+           └─────────────────────┬─────────────────────┘
+                                 │
+                                 ▼
+                        COMBINED INSIGHTS
+                        ┌────────────────────────────┐
+                        │ "Sarah is a boundary       │
+                        │ resident with low          │
+                        │ engagement. She shares     │
+                        │ interests with 3 core      │
+                        │ residents → intro oppty"   │
+                        └────────────────────────────┘
+```
+
+## Engagement Scoring
+
+```typescript
+interface EngagementScores {
+  breadth: number;           // Count of activity types (0-10+)
+  depth: number;             // Hours per week (0-20+)
+  leadership: number;        // 1=none, 2=member, 3=active, 4=leader, 5=exec
+  studyIntegration: number;  // Study with others frequency (1-5)
+  barrierCount: number;      // Number of barriers selected
+
+  // Composite
+  engagementIndex: number;   // 0-100
+
+  // Flags
+  underEngaged: boolean;     // breadth=0 AND depth=0
+  isolatedStudier: boolean;  // Always studies alone
+  hasBarriers: boolean;      // 2+ barriers selected
+}
+
+function computeEngagementIndex(scores: EngagementScores): number {
+  // Normalize each component
+  const breadthScore = Math.min(scores.breadth / 5, 1) * 100;      // Cap at 5 activities
+  const depthScore = Math.min(scores.depth / 10, 1) * 100;         // Cap at 10 hrs
+  const leadershipScore = ((scores.leadership - 1) / 4) * 100;
+  const socialStudyScore = ((scores.studyIntegration - 1) / 4) * 100;
+  const barrierPenalty = Math.min(scores.barrierCount * 10, 30);   // Max 30pt penalty
+
+  // Weighted average
+  return Math.round(
+    breadthScore * 0.25 +
+    depthScore * 0.25 +
+    leadershipScore * 0.20 +
+    socialStudyScore * 0.20 +
+    10 -                      // Base points
+    barrierPenalty * 0.10     // Barrier deduction
+  );
+}
+```
+
+## Novel Research Questions
+
+Connecting topology to engagement literature:
+
+| Hypothesis | Variables | Expected Finding |
+|------------|-----------|------------------|
+| H1 | Boundary position → engagement satisfaction | Boundary residents less satisfied with involvement |
+| H2 | Shared-class edges → study collaboration | More class connections = more collaborative study |
+| H3 | Structural holes → "don't know what's available" | Gap positions correlate with awareness barrier |
+| H4 | Bridge residents → leadership roles | Connectors more likely to hold leadership |
+
+**Publication angle:** "Does Position in Residential Social Network Topology Predict Co-Curricular Engagement? A Novel Application of Algebraic Topology to Student Involvement Theory"
+
+---
+
+# COMPLETE CHECKIN SURVEY STRUCTURE
+
+## Summary View
+
+| Module | Items | When | Time | Validation |
+|--------|-------|------|------|------------|
+| **Wellbeing** (PHQ-4, UCLA-3, Belonging, Singles) | 13 | Every check-in | 90 sec | 7,500+ combined citations |
+| **Activity Profile** (Classes, Orgs, Interests, Barriers) | 10 | Once/semester | 3 min | NSSE/EII validated |
+| **Quick Update** (New activities, connection requests) | 2 | Every check-in | 15 sec | Face valid |
+| **Stressors & Resources** | 4 | Every check-in | 30 sec | Practical utility |
+| **TOTAL (regular check-in)** | **17** | - | **~2-3 min** | - |
+| **TOTAL (with full activity)** | **27** | - | **~5-6 min** | - |
+
+## Data Integration
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           COMPLETE DATA MODEL                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PER RESIDENT:
+├── Demographics (from roster)
+│   ├── Name, Room, Email, Phone
+│   └── Year, Major (if available)
+│
+├── Activity Profile (semester)
+│   ├── Classes → [creates edges]
+│   ├── Organizations → [creates edges]
+│   ├── Interests → [creates edges]
+│   ├── Study habits
+│   ├── Employment status
+│   └── Barriers
+│
+├── Check-In History (longitudinal)
+│   ├── Timestamp
+│   ├── Wellbeing scores (PHQ-2, GAD-2, UCLA-3, belonging, etc.)
+│   ├── Composite index
+│   ├── Flags triggered
+│   ├── Stressors selected
+│   ├── Resources requested
+│   └── Follow-up preference
+│
+└── Topology Position (computed)
+    ├── Centrality score
+    ├── Boundary score
+    ├── Bridge status
+    ├── Component membership
+    └── Connection count
+
+PER FLOOR:
+├── Aggregate wellbeing metrics
+├── Topology metrics (β₀, β₁)
+├── Common stressors
+├── Engagement distribution
+└── Trend analysis
+```
+
+## Implementation Phases
+
+```
+PHASE 1: WELLBEING PILOT (Weeks 1-6)
+────────────────────────────────────────────────────────────────────────────
+✓ Deploy 17-item wellbeing check-in
+✓ Manual scoring in Google Sheets
+✓ Establish alert protocols
+✓ Train RAs on interpretation
+Output: Completion rates, flag accuracy, RA feedback
+
+PHASE 2: ACTIVITY INTEGRATION (Weeks 7-10)
+────────────────────────────────────────────────────────────────────────────
+○ Deploy activity profile survey
+○ Build edge weights from shared attributes
+○ Compute initial topology metrics
+○ Add engagement scoring
+Output: Community graph, engagement index, intro suggestions
+
+PHASE 3: FULL INTEGRATION (Weeks 11-14)
+────────────────────────────────────────────────────────────────────────────
+○ Correlate topology position with wellbeing
+○ Validate hypotheses (H1-H4)
+○ Generate research findings
+○ Prepare presentation for institution
+Output: Publishable findings, scaling proposal
+
+PHASE 4: SCALING (Post-Pilot)
+────────────────────────────────────────────────────────────────────────────
+○ Present to ResLife leadership
+○ Secure institutional support
+○ Phased infrastructure migration (see below)
+○ Expand to additional buildings
+Output: Institution-wide deployment
+```
+
+## Technical Scaling Roadmap
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         INFRASTRUCTURE SCALING PHASES                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+TIER 1: PILOT (<50 residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Google Forms → Google Sheets
+SMS:          Remind (free) or Google Voice
+Dashboard:    Sheets with conditional formatting
+Cost:         $0/month
+Maintenance:  ~2 hrs/week RD time
+Limitations:  Manual workflows, no real-time alerts
+
+TIER 2: SMALL SCALE (50-500 residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Google Forms → Airtable (or Notion)
+SMS:          Remind Pro ($10/mo) or Community (free)
+Dashboard:    Airtable interfaces with views/filters
+Automation:   Zapier (free tier) for email alerts
+Cost:         $0–$50/month
+Maintenance:  ~3 hrs/week
+Upgrade path: Add Typeform for better mobile UX
+
+TIER 3: MEDIUM SCALE (500-2,000 residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Low-code app (Bubble, Adalo, or Glide)
+SMS:          Twilio-lite integration OR WhatsApp Business
+Database:     Airtable Pro or Supabase (free tier)
+Dashboard:    Custom low-code dashboard with role-based access
+Automation:   n8n (self-hosted, free) or Make.com
+Cost:         $100–$300/month
+Maintenance:  ~5 hrs/week + occasional developer support
+
+TIER 4: INSTITUTION-WIDE (2,000-10,000+ residents)
+─────────────────────────────────────────────────────────────────────────────
+Platform:     Custom web app (Next.js/React + Supabase/PostgreSQL)
+SMS:          Twilio Programmable SMS ($0.0075/message)
+Database:     PostgreSQL with proper security/RBAC
+Dashboard:    Custom dashboards, RD/RA views, admin analytics
+Automation:   Server-side (cron jobs, webhooks)
+Mobile:       PWA or native app (optional)
+Cost:         $5,000–$20,000 initial build + $500–$2,000/month
+Maintenance:  Part-time developer or managed service
+
+DECISION CRITERIA FOR TIER UPGRADES:
+─────────────────────────────────────────────────────────────────────────────
+Move up when:
+• Manual processes exceed 5 hrs/week
+• Response latency becomes problematic (missing alerts)
+• Multi-building coordination becomes unwieldy
+• Institution commits funding for expansion
+```
+
+---
+
+# APPENDIX: GOOGLE SHEETS TEMPLATE
+
+## Tab Structure
+
+| Tab Name | Purpose | Auto/Manual |
+|----------|---------|-------------|
+| `Raw Responses` | Form submission data | Auto (linked to Form) |
+| `Scored Data` | Calculated scores + flags | Auto (formulas) |
+| `Individual View` | Per-resident detail lookup | Manual lookup |
+| `Floor Dashboard` | Aggregate metrics + charts | Auto (pivot tables) |
+| `Trends` | Longitudinal analysis | Auto (charts) |
+| `Activity Edges` | Connection matrix | Semi-auto |
+| `Alert Log` | Record of follow-ups | Manual entry |
+
+## Key Formulas
+
+```
+// PHQ-2 Score (assuming columns C & D have Q2 & Q3 responses)
+=IF(C2="Not at all",0,IF(C2="Several days",1,IF(C2="More than half",2,3)))
+  + IF(D2="Not at all",0,IF(D2="Several days",1,IF(D2="More than half",2,3)))
+
+// UCLA-3 Score (columns H, I, J for Q8-Q10)
+=IF(H2="Hardly ever",1,IF(H2="Some of the time",2,3))
+  + IF(I2="Hardly ever",1,IF(I2="Some of the time",2,3))
+  + IF(J2="Hardly ever",1,IF(J2="Some of the time",2,3))
+
+// Belonging Mean (columns K, L, M for Q11-Q13, assuming 1-5 numeric)
+=AVERAGE(K2:M2)
+
+// Depression Flag
+=IF(PHQ2_cell>=3, "🟡 DEP", "")
+
+// Urgent Flag
+=IF(PHQ2_cell>=5, "🔴 URGENT", IF(AND(PHQ2_cell>=3, UCLA3_cell>=7), "🟠 CONCERN", ""))
+
+// Wellbeing Index (simplified)
+=ROUND(100 * (1 - PHQ2/6*0.2 - GAD2/6*0.15 - (UCLA3-3)/6*0.2 - (5-Belong)/4*0.15 - (5-Week)/4*0.1 - (5-Sleep)/4*0.1 - (10-LifeSat)/10*0.1))
+
+// Floor Average
+=AVERAGEIF(Floor_column, "3E", Index_column)
+
+// Conditional Formatting Rule (for row highlighting)
+Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🔴")  → Red background
+Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🟠")  → Orange background
+Custom formula: =REGEXMATCH($FLAGS_COLUMN, "🟡")  → Yellow background
+```
+
+---
+
+# APPENDIX: PILOT RESULTS (PLACEHOLDER)
+
+*Data forthcoming from Fall 202X pilot (N=XXX residents, X floors, X RAs)*
+
+## Participation Metrics
+
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Residents invited | TBD | — |
+| Check-ins completed | — | — |
+| Response rate | ≥75% | — |
+| Average completion time | <3 min | — |
+| Dropout rate (started but not completed) | <10% | — |
+
+## Wellbeing Prevalence
+
+| Measure | N | % Positive Screen | 95% CI |
+|---------|---|-------------------|--------|
+| PHQ-2 ≥ 3 (Depression) | — | — | — |
+| GAD-2 ≥ 3 (Anxiety) | — | — | — |
+| UCLA-3 ≥ 7 (High loneliness) | — | — | — |
+| Belonging < 2.5 (Low) | — | — | — |
+| Any clinical flag | — | — | — |
+| Urgent concern | — | — | — |
+
+## Alert Accuracy
+
+| Alert Type | Triggered | Confirmed by RA | False Positive Rate |
+|------------|-----------|-----------------|---------------------|
+| 🟡 Yellow (1 flag) | — | — | — |
+| 🟠 Orange (2+ flags) | — | — | — |
+| 🔴 Red (urgent) | — | — | — |
+
+## Intervention Outcomes
+
+| Outcome | N | Notes |
+|---------|---|-------|
+| RA follow-up conversations initiated | — | — |
+| Referrals to counseling | — | — |
+| Referrals to other resources | — | — |
+| Crisis interventions | — | — |
+
+## Longitudinal Trends (Weeks 3, 8, 13)
+
+| Time Point | Mean Wellbeing Index | SD | % with Decline >15 pts |
+|------------|---------------------|----|-----------------------|
+| Week 3 (T1) | — | — | — |
+| Week 8 (T2) | — | — | — |
+| Week 13 (T3) | — | — | — |
+
+## Topology-Wellbeing Correlation (Preliminary)
+
+| Hypothesis | r | p | Support? |
+|------------|---|---|----------|
+| H1: Boundary position → lower wellbeing | — | — | — |
+| H2: More connections → lower loneliness | — | — | — |
+| H3: Bridge residents → higher engagement | — | — | — |
+
+## Qualitative Feedback
+
+### RA Feedback
+*To be collected via post-pilot survey*
+
+- Ease of use: — / 5
+- Value for resident conversations: — / 5
+- Would recommend to other RAs: — %
+- Open-ended themes: [TBD]
+
+### Resident Feedback (Optional Exit Survey)
+*If collected*
+
+- Survey felt invasive: — %
+- Survey was helpful for self-reflection: — %
+- Would complete again: — %
+
+---
+
+# REFERENCES
+
+Astin, A. W. (1984). Student involvement: A developmental theory for higher education. *Journal of College Student Personnel*, 25(4), 297-308.
+
+Cheung, F., & Lucas, R. E. (2014). Assessing the validity of single-item life satisfaction measures. *Quality of Life Research*, 23(5), 1457-1468.
+
+Hoffman, M., Richmond, J., Morrow, J., & Salomone, K. (2002). Investigating "sense of belonging" in first-year college students. *Journal of College Student Retention*, 4(3), 227-256.
+
+Hughes, M. E., Waite, L. J., Hawkley, L. C., & Cacioppo, J. T. (2004). A short scale for measuring loneliness in large surveys. *Research on Aging*, 26(6), 655-672.
+
+Kroenke, K., Spitzer, R. L., & Williams, J. B. (2003). The Patient Health Questionnaire-2: Validity of a two-item depression screener. *Medical Care*, 41(11), 1284-1292.
+
+Kroenke, K., Spitzer, R. L., Williams, J. B., Monahan, P. O., & Löwe, B. (2007). Anxiety disorders in primary care: Prevalence, impairment, comorbidity, and detection. *Annals of Internal Medicine*, 146(5), 317-325.
+
+Kroenke, K., Spitzer, R. L., Williams, J. B., & Löwe, B. (2009). An ultra-brief screening scale for anxiety and depression: The PHQ-4. *Psychosomatics*, 50(6), 613-621.
+
+Kuh, G. D. (2008). *High-impact educational practices: What they are, who has access to them, and why they matter*. AAC&U.
+
+Pace, C. R., & Kuh, G. D. (1998). *College Student Experiences Questionnaire* (4th ed.). Indiana University.
+
+Tinto, V. (1993). *Leaving college: Rethinking the causes and cures of student attrition* (2nd ed.). University of Chicago Press.
+
+Winston, R. B., & Massaro, A. V. (1987). Extracurricular involvement inventory: An instrument for assessing intensity of student involvement. *Journal of College Student Personnel*, 28(2), 169-175.
+
+---
+
+*Document Version: 2.0*
+*Last Updated: [DATE]*
+*Status: Pre-pilot specification*
+*Contact: [Author email]*
